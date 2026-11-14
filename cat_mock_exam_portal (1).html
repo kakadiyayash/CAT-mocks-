@@ -1,0 +1,2898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAT Mock Exam Portal - Creator & TCS iON Test Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            user-select: none;
+        }
+        /* Allow text selection in inputs, textareas, and review/question areas */
+        input, textarea, select, .selectable-text {
+            user-select: text;
+        }
+
+        /* Authentic TCS iON Question Palette Status Shapes & Colors */
+        .palette-btn {
+            width: 38px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            position: relative;
+        }
+        .palette-btn:hover {
+            transform: scale(1.06);
+        }
+        /* 1. Not Visited: Grey rounded box */
+        .status-not-visited {
+            background: #e5e7eb;
+            color: #374151;
+            border: 1px solid #9ca3af;
+            border-radius: 4px;
+        }
+        /* 2. Not Answered: Red/Orange tapered polygon */
+        .status-not-answered {
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 72%, 50% 100%, 0% 72%);
+            border-radius: 3px 3px 0 0;
+        }
+        /* 3. Answered: Green tapered upward polygon */
+        .status-answered {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+            color: #ffffff;
+            clip-path: polygon(50% 0%, 100% 28%, 100% 100%, 0% 100%, 0% 28%);
+            border-radius: 0 0 3px 3px;
+        }
+        /* 4. Marked for Review: Purple circle */
+        .status-marked {
+            background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+            color: #ffffff;
+            border-radius: 50%;
+        }
+        /* 5. Answered & Marked for Review: Purple circle with small green badge */
+        .status-answered-marked {
+            background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+            color: #ffffff;
+            border-radius: 50%;
+        }
+        .status-answered-marked::after {
+            content: '✓';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            background: #22c55e;
+            color: white;
+            font-size: 9px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid white;
+        }
+
+        /* Active question ring */
+        .palette-active {
+            outline: 2.5px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        /* Custom scrollbar for split panes */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Toast Notification Banner (Replaces alert) -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Custom Confirmation Modal (Replaces confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200">
+            <h3 id="confirm-title" class="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
+            <p id="confirm-message" class="text-sm text-gray-600 mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition">Cancel</button>
+                <button id="confirm-ok-btn" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Paper / Instructions Modal (Exam Mode) -->
+    <div id="exam-info-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="bg-[#2c3e50] text-white px-6 py-4 flex justify-between items-center">
+                <h3 id="exam-info-title" class="font-bold text-lg">Question Paper</h3>
+                <button onclick="closeExamInfoModal()" class="text-gray-300 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div id="exam-info-body" class="p-6 overflow-y-auto space-y-6 selectable-text text-sm"></div>
+            <div class="bg-gray-50 px-6 py-3 border-t flex justify-end">
+                <button onclick="closeExamInfoModal()" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Zoom Lightbox Modal (For inspecting DI Charts & Quant Geometry Figures) -->
+    <div id="image-zoom-modal" onclick="closeImageZoomModal()" class="fixed inset-0 bg-black/85 backdrop-blur-xs z-50 hidden items-center justify-center p-4 cursor-zoom-out">
+        <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="closeImageZoomModal()" class="self-end mb-2 px-3 py-1 bg-white/15 hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition">
+                ✕ Close Zoom
+            </button>
+            <img id="image-zoom-target" src="" alt="Zoomed Diagram" class="max-w-full max-h-[82vh] object-contain rounded-xl bg-white p-2 shadow-2xl">
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TOP GLOBAL NAVIGATION (Hidden during active Exam Mode for realism)    -->
+    <!-- ===================================================================== -->
+    <header id="global-header" class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-lg shadow-inner">
+                    CAT
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg tracking-tight leading-tight">CAT Mock Studio</h1>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">Create Custom Mocks & Practice in TCS iON Interface</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher Pills -->
+            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+                <button id="nav-student-btn" onclick="switchAppMode('student')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 bg-blue-600 text-white shadow">
+                    <span>🎓</span> Student Portal
+                </button>
+                <button id="nav-admin-btn" onclick="switchAppMode('admin')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white">
+                    <span>🛠️</span> Mock Creator (Admin)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: STUDENT LOBBY (Select Mock & View Past Attempts)              -->
+    <!-- ===================================================================== -->
+    <main id="view-student-lobby" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-2xl p-6 sm:p-8 text-white shadow-lg mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+                <span class="inline-block px-3 py-1 bg-white/15 rounded-full text-xs font-semibold tracking-wider uppercase mb-3">Official Pattern Simulation</span>
+                <h2 class="text-2xl sm:text-3xl font-bold mb-2">Ready for your CAT Mock Test?</h2>
+                <p class="text-blue-100 text-sm max-w-2xl">
+                    Experience the exact TCS iON exam interface: 40 minutes per section (VARC → DILR → QA), +3/-1 marking scheme, TITA numeric keypad, and instant section-wise analytics.
+                </p>
+            </div>
+            <button onclick="switchAppMode('admin')" class="shrink-0 bg-white text-blue-800 hover:bg-blue-50 font-semibold px-5 py-3 rounded-xl shadow transition text-sm">
+                + Create / Add Questions
+            </button>
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Available Mock Tests</h3>
+            <span id="lobby-mock-count" class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-1 rounded-full">0 Mocks</span>
+        </div>
+
+        <div id="student-mock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Mock cards injected dynamically -->
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: ADMIN / MOCK CREATOR MODE                                     -->
+    <!-- ===================================================================== -->
+    <main id="view-admin" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: Mock List & JSON Backup -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-bold text-gray-900 text-base">Your Mock Tests</h2>
+                        <button onclick="openNewMockInput()" class="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
+                            + New Mock
+                        </button>
+                    </div>
+
+                    <!-- Inline New Mock Creator Input -->
+                    <div id="new-mock-box" class="hidden mb-4 p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                        <label class="block text-xs font-semibold text-blue-900">Mock Test Title</label>
+                        <input type="text" id="new-mock-title-input" placeholder="e.g., CAT 2026 Full Mock - 01" class="w-full px-3 py-2 text-sm bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" onclick="closeNewMockInput()" class="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900">Cancel</button>
+                            <button type="button" onclick="createNewMock()" class="px-3 py-1 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create Mock</button>
+                        </div>
+                    </div>
+
+                    <div id="admin-mock-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                        <!-- Admin mock selector cards injected here -->
+                    </div>
+                </div>
+
+                <!-- Personal Google Drive Sync Card -->
+                <div class="bg-white rounded-2xl shadow-xs border border-blue-200 p-5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">📁</span>
+                            <h3 class="font-bold text-gray-900 text-sm">Google Drive Storage</h3>
+                        </div>
+                        <span id="gdrive-badge" class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Not Connected</span>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                        Connect your personal Google account to permanently store & sync all mocks, DILR charts, and Quant figures to <code class="text-[11px] bg-gray-100 px-1 rounded">CAT_Mocks_Studio_Backup.json</code> in your Google Drive.
+                    </p>
+
+                    <!-- Disconnected State -->
+                    <div id="gdrive-disconnected-panel" class="space-y-2 pt-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-semibold text-gray-600">Google OAuth Client ID</span>
+                            <button type="button" onclick="toggleGDriveHelp()" class="text-[11px] text-blue-600 hover:underline font-medium">How to get free ID?</button>
+                        </div>
+                        <input type="text" id="gdrive-client-id-input" placeholder="123456789-xxxx.apps.googleusercontent.com" class="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        
+                        <div id="gdrive-help-box" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-[11px] text-blue-950 space-y-1">
+                            <p class="font-bold">1-Minute Setup (Free):</p>
+                            <ol class="list-decimal pl-4 space-y-1">
+                                <li>Go to <strong>console.cloud.google.com</strong> → Create a Project.</li>
+                                <li>Enable <strong>Google Drive API</strong> in Library.</li>
+                                <li>Go to <strong>Credentials → Create OAuth Client ID → Web Application</strong>.</li>
+                                <li>Add this page's origin URL under <em>Authorized JavaScript origins</em>, copy the Client ID, and paste it above.</li>
+                            </ol>
+                        </div>
+
+                        <button type="button" onclick="connectGoogleDrive()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
+                            <span>🔗</span> Connect & Sign in with Google
+                        </button>
+                    </div>
+
+                    <!-- Connected State -->
+                    <div id="gdrive-connected-panel" class="hidden space-y-2.5 pt-1">
+                        <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                            <div class="truncate">
+                                <div id="gdrive-user-email" class="text-xs font-bold text-emerald-950 truncate">Connected Account</div>
+                                <div id="gdrive-last-sync" class="text-[10px] text-emerald-700">Auto-sync enabled</div>
+                            </div>
+                            <button type="button" onclick="disconnectGoogleDrive()" class="text-[11px] font-semibold text-red-600 hover:underline shrink-0">Disconnect</button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="syncAllToGoogleDrive(false)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1">
+                                <span>☁️</span> Save Now
+                            </button>
+                            <button type="button" onclick="loadFromGoogleDrive()" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1">
+                                <span>📥</span> Load from Drive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Backup / Export / Import Card -->
+                <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 space-y-3">
+                    <h3 class="font-bold text-gray-900 text-sm">Backup & Share Mocks</h3>
+                    <p class="text-xs text-gray-500">Download a local JSON copy anytime or import mocks from a file.</p>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="exportMocksJSON()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                            <span>⬇️</span> Export JSON
+                        </button>
+                        <label class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <span>⬆️</span> Import JSON
+                            <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="importMocksJSON(event)">
+                        </label>
+                    </div>
+                    <button onclick="resetSampleData()" class="w-full py-2 text-xs font-medium text-gray-500 hover:text-gray-800 border border-dashed border-gray-300 rounded-xl transition">
+                        Restore Default Sample Mock
+                    </button>
+                    <div id="cloud-sync-status" class="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                        <span class="flex items-center gap-1.5">
+                            <span id="cloud-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                            <span id="cloud-status-text">Connecting to Cloud...</span>
+                        </span>
+                        <span id="cloud-user-badge" class="font-mono text-[10px] text-gray-400 truncate max-w-[110px]" title="Cloud Workspace ID"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Quick Question & Answer Builder + Question Bank -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Selected Mock Header -->
+                <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Editing Mock</span>
+                        <h2 id="admin-selected-mock-title" class="text-xl font-bold text-gray-900">CAT 2026 Sample Diagnostic Mock</h2>
+                        <p id="admin-selected-mock-stats" class="text-xs text-gray-500 mt-0.5">VARC: 2 | DILR: 2 | QA: 2</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="launchSelectedMockFromAdmin()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition">
+                            ▶ Preview & Take Test
+                        </button>
+                        <button onclick="deleteSelectedMock()" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-xl transition" title="Delete Mock">
+                            Delete Mock
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Streamlined "Add Question & Set Answer" Card -->
+                <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-5 pb-3 border-b border-gray-100">
+                        <div>
+                            <h3 id="builder-form-heading" class="font-bold text-gray-900 text-base">Add New Question</h3>
+                            <p class="text-xs text-gray-500">Just enter your question, attach optional charts/diagrams, and set the correct answer.</p>
+                        </div>
+                        <button id="cancel-edit-q-btn" onclick="resetQuestionForm()" class="hidden text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">
+                            Cancel Edit
+                        </button>
+                    </div>
+
+                    <form id="question-builder-form" onsubmit="saveQuestionFromForm(event)" class="space-y-4">
+                        <input type="hidden" id="edit-question-id" value="">
+
+                        <!-- Row 1: Section & Question Type -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">1. Select Section</label>
+                                <select id="q-section" class="w-full px-3.5 py-2.5 text-sm font-medium bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="VARC">VARC (Verbal Ability & RC)</option>
+                                    <option value="DILR">DILR (Data Interpretation & LR)</option>
+                                    <option value="QA">QA (Quantitative Aptitude)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">2. Question Type</label>
+                                <select id="q-type" onchange="toggleQuestionTypeFields()" class="w-full px-3.5 py-2.5 text-sm font-medium bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="MCQ">MCQ (4 Options, +3 / -1)</option>
+                                    <option value="TITA">TITA (Type In The Answer, +3 / 0)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Optional Passage / DILR Caselet & Chart Image -->
+                        <div class="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <label class="block text-xs font-bold text-gray-700 uppercase">
+                                    3. RC Passage / DILR Caselet & Chart <span class="text-gray-400 font-normal lowercase">(optional)</span>
+                                </label>
+                                <button type="button" onclick="reusePreviousPassage()" class="text-[11px] font-semibold text-blue-600 hover:underline">
+                                    ↻ Copy last passage & chart
+                                </button>
+                            </div>
+                            <textarea id="q-passage" rows="3" placeholder="Paste RC passage or DILR caselet text here if this question belongs to a set..." class="w-full px-3.5 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+                            <!-- DILR / Passage Chart Image Uploader -->
+                            <div id="passage-img-dropzone"
+                                 tabindex="0"
+                                 onpaste="handleImagePaste(event, 'passage')"
+                                 ondragover="handleDragOver(event, 'passage-img-dropzone')"
+                                 ondragleave="handleDragLeave(event, 'passage-img-dropzone')"
+                                 ondrop="handleImageDrop(event, 'passage')"
+                                 class="border border-dashed border-gray-300 bg-white rounded-xl p-3 transition focus:outline-none focus:border-blue-500">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 text-xs text-gray-600">
+                                        <span class="text-base">📊</span>
+                                        <span><strong>Attach DILR Chart / Table Image:</strong> Upload, drag & drop, or click here & press <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-[10px] font-mono">Ctrl+V</kbd></span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-lg cursor-pointer transition">
+                                            📁 Upload Chart
+                                            <input type="file" id="passage-img-file" accept="image/*" class="hidden" onchange="handleImageFileSelect(event, 'passage')">
+                                        </label>
+                                        <button type="button" onclick="toggleUrlInput('passage')" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg transition">
+                                            🔗 URL
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="passage-url-box" class="hidden mt-2 flex gap-2">
+                                    <input type="url" id="passage-img-url-input" placeholder="https://example.com/dilr-chart.png" class="flex-1 px-3 py-1.5 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button type="button" onclick="applyImageUrl('passage')" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg">Attach</button>
+                                </div>
+
+                                <div id="passage-img-preview-wrap" class="hidden mt-3 relative inline-block">
+                                    <img id="passage-img-preview" src="" alt="DILR Chart Preview" onclick="openImageZoomModal(this.src)" class="max-h-44 rounded-lg border border-gray-300 shadow-2xs cursor-zoom-in">
+                                    <button type="button" onclick="removeImage('passage')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs font-bold shadow hover:bg-red-700 flex items-center justify-center" title="Remove Chart">
+                                        &times;
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Question Text & Optional Quant/Question Diagram -->
+                        <div class="space-y-2.5">
+                            <label class="block text-xs font-bold text-gray-700 uppercase">4. Question Text *</label>
+                            <textarea id="q-text" rows="3" required placeholder="Type or paste the question here..." class="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+                            <!-- Quant / Question Diagram Image Uploader -->
+                            <div id="question-img-dropzone"
+                                 tabindex="0"
+                                 onpaste="handleImagePaste(event, 'question')"
+                                 ondragover="handleDragOver(event, 'question-img-dropzone')"
+                                 ondragleave="handleDragLeave(event, 'question-img-dropzone')"
+                                 ondrop="handleImageDrop(event, 'question')"
+                                 class="border border-dashed border-gray-300 bg-gray-50/70 rounded-xl p-3 transition focus:outline-none focus:border-blue-500">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 text-xs text-gray-600">
+                                        <span class="text-base">📐</span>
+                                        <span><strong>Attach Quant Geometry / Graph Figure (optional):</strong> Upload, drop, or paste (<kbd class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-[10px] font-mono">Ctrl+V</kbd>)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <label class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-lg cursor-pointer transition">
+                                            📁 Upload Figure
+                                            <input type="file" id="question-img-file" accept="image/*" class="hidden" onchange="handleImageFileSelect(event, 'question')">
+                                        </label>
+                                        <button type="button" onclick="toggleUrlInput('question')" class="px-2.5 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 font-semibold text-xs rounded-lg transition">
+                                            🔗 URL
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="question-url-box" class="hidden mt-2 flex gap-2">
+                                    <input type="url" id="question-img-url-input" placeholder="https://example.com/geometry-figure.png" class="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button type="button" onclick="applyImageUrl('question')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg">Attach</button>
+                                </div>
+
+                                <div id="question-img-preview-wrap" class="hidden mt-3 relative inline-block">
+                                    <img id="question-img-preview" src="" alt="Question Diagram Preview" onclick="openImageZoomModal(this.src)" class="max-h-44 rounded-lg border border-gray-300 bg-white shadow-2xs cursor-zoom-in">
+                                    <button type="button" onclick="removeImage('question')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs font-bold shadow hover:bg-red-700 flex items-center justify-center" title="Remove Figure">
+                                        &times;
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 4A: MCQ Options & Correct Answer Radio -->
+                        <div id="mcq-fields-container" class="space-y-3 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-gray-800 uppercase">5. Enter Options & Select Correct Answer *</label>
+                                <span class="text-[11px] font-semibold text-emerald-700">Click circle to mark correct option</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200">
+                                    <input type="radio" name="mcq-correct" value="0" checked class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="Mark Option A as Correct">
+                                    <span class="font-bold text-xs text-gray-500 w-5">A)</span>
+                                    <input type="text" id="opt-0" placeholder="Option A text" class="w-full text-sm focus:outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200">
+                                    <input type="radio" name="mcq-correct" value="1" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="Mark Option B as Correct">
+                                    <span class="font-bold text-xs text-gray-500 w-5">B)</span>
+                                    <input type="text" id="opt-1" placeholder="Option B text" class="w-full text-sm focus:outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200">
+                                    <input type="radio" name="mcq-correct" value="2" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="Mark Option C as Correct">
+                                    <span class="font-bold text-xs text-gray-500 w-5">C)</span>
+                                    <input type="text" id="opt-2" placeholder="Option C text" class="w-full text-sm focus:outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200">
+                                    <input type="radio" name="mcq-correct" value="3" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="Mark Option D as Correct">
+                                    <span class="font-bold text-xs text-gray-500 w-5">D)</span>
+                                    <input type="text" id="opt-3" placeholder="Option D text" class="w-full text-sm focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 4B: TITA Correct Answer Input -->
+                        <div id="tita-fields-container" class="hidden space-y-2 bg-amber-50/60 p-4 rounded-xl border border-amber-200">
+                            <label class="block text-xs font-bold text-amber-950 uppercase">5. Set Exact Correct TITA Answer *</label>
+                            <input type="text" id="tita-correct" placeholder="e.g., 42 or 3412" class="w-full sm:w-64 px-3.5 py-2 text-sm font-bold bg-white border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <p class="text-[11px] text-amber-800">Students will type this exact number/sequence using the on-screen CAT keypad.</p>
+                        </div>
+
+                        <!-- Row 5: Optional Explanation / Solution -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+                                6. Solution / Explanation <span class="text-gray-400 font-normal lowercase">(optional — shown in scorecard review)</span>
+                            </label>
+                            <textarea id="q-explanation" rows="2" placeholder="Explain why the answer is correct..." class="w-full px-3.5 py-2 text-sm bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+
+                        <div class="pt-2 flex items-center justify-end gap-3">
+                            <button type="submit" id="save-question-submit-btn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow transition">
+                                + Add Question to Mock
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Added Questions List (Filterable by Section) -->
+                <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <h3 class="font-bold text-gray-900 text-base">Questions in this Mock</h3>
+                        <div class="flex gap-1.5 text-xs">
+                            <button onclick="filterAdminQuestions('ALL')" id="filter-btn-ALL" class="px-3 py-1 rounded-lg font-semibold bg-slate-800 text-white">All</button>
+                            <button onclick="filterAdminQuestions('VARC')" id="filter-btn-VARC" class="px-3 py-1 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">VARC</button>
+                            <button onclick="filterAdminQuestions('DILR')" id="filter-btn-DILR" class="px-3 py-1 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">DILR</button>
+                            <button onclick="filterAdminQuestions('QA')" id="filter-btn-QA" class="px-3 py-1 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">QA</button>
+                        </div>
+                    </div>
+
+                    <div id="admin-questions-list" class="space-y-3">
+                        <!-- Question cards injected dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 3: AUTHENTIC TCS iON / CAT EXAM ENGINE                           -->
+    <!-- ===================================================================== -->
+    <section id="view-exam-engine" class="hidden fixed inset-0 bg-[#f0f2f5] z-40 flex flex-col">
+        
+        <!-- Top Dark Exam Bar -->
+        <div class="bg-[#2b303a] text-white h-12 px-4 flex items-center justify-between shrink-0 border-b border-slate-700">
+            <div class="flex items-center gap-3 truncate">
+                <span class="px-2 py-0.5 bg-blue-600 rounded text-xs font-bold tracking-wide">CAT SIM</span>
+                <h2 id="exam-header-title" class="font-semibold text-sm sm:text-base truncate">CAT 2026 Mock Test</h2>
+            </div>
+            <div class="flex items-center gap-4 text-xs">
+                <button onclick="openQuestionPaperModal()" class="hidden sm:inline-flex items-center gap-1 text-slate-300 hover:text-white">
+                    <span>📄</span> Question Paper
+                </button>
+                <button onclick="openInstructionsModal()" class="hidden sm:inline-flex items-center gap-1 text-slate-300 hover:text-white">
+                    <span>ℹ️</span> Instructions
+                </button>
+                <button onclick="confirmSubmitExam()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-semibold transition">
+                    Exit / Submit
+                </button>
+            </div>
+        </div>
+
+        <!-- Section Tabs & Live Sectional Countdown Timer -->
+        <div class="bg-white border-b border-gray-300 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-2xs">
+            <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-gray-500 mr-1 hidden md:inline">Sections:</span>
+                <button id="sec-tab-VARC" onclick="attemptSectionSwitch('VARC')" class="px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5">
+                    VARC <span id="sec-badge-VARC" class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10">0</span>
+                </button>
+                <button id="sec-tab-DILR" onclick="attemptSectionSwitch('DILR')" class="px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5">
+                    DILR <span id="sec-badge-DILR" class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10">0</span>
+                </button>
+                <button id="sec-tab-QA" onclick="attemptSectionSwitch('QA')" class="px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5">
+                    QA <span id="sec-badge-QA" class="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10">0</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-900 text-white px-3.5 py-1.5 rounded-lg flex items-center gap-2 shadow-inner">
+                    <span class="text-[11px] text-slate-400 uppercase font-semibold">Time Left:</span>
+                    <span id="exam-timer-display" class="font-mono font-bold text-sm sm:text-base text-amber-400">40:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Exam Split Body (Left: Question Area | Right: Candidate & Palette) -->
+        <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            
+            <!-- Left Content Area -->
+            <div class="flex-1 flex flex-col bg-white border-r border-gray-300 overflow-hidden">
+                
+                <!-- Question Sub-header -->
+                <div class="bg-[#e8eef5] px-4 py-2 border-b border-gray-300 flex items-center justify-between text-xs shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-blue-900 text-sm" id="exam-q-number-label">Question No. 1</span>
+                        <span id="exam-q-type-label" class="px-2 py-0.5 rounded bg-white border border-gray-300 font-semibold text-gray-700">MCQ</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-700 font-medium">
+                        <span>Marks: <strong class="text-emerald-700" id="exam-marking-badge">+3 / -1</strong></span>
+                    </div>
+                </div>
+
+                <!-- Scrollable Passage + Question Area -->
+                <div id="exam-question-workspace" class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden selectable-text">
+                    
+                    <!-- Optional Split Passage / DILR Set & Chart Image Pane -->
+                    <div id="exam-passage-pane" class="hidden md:w-1/2 p-5 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto bg-[#fafafa]">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Passage / Caselet & Data</span>
+                            <span id="exam-passage-zoom-hint" class="hidden text-[11px] text-blue-600 font-medium">Click chart to zoom</span>
+                        </div>
+                        <div id="exam-passage-content" class="text-sm leading-relaxed text-gray-800 whitespace-pre-line"></div>
+                        <div id="exam-passage-img-container" class="hidden mt-3">
+                            <img id="exam-passage-img" src="" alt="DILR Chart" onclick="openImageZoomModal(this.src)" class="max-w-full rounded-xl border border-gray-300 bg-white p-1.5 shadow-2xs cursor-zoom-in hover:opacity-95 transition">
+                        </div>
+                    </div>
+
+                    <!-- Question Stem, Optional Diagram & Answer Input Pane -->
+                    <div id="exam-stem-pane" class="flex-1 p-5 sm:p-6 overflow-y-auto space-y-5">
+                        <div id="exam-question-text" class="text-sm sm:text-base font-medium text-gray-900 leading-relaxed whitespace-pre-line"></div>
+
+                        <!-- Optional Quant / Question Diagram -->
+                        <div id="exam-question-img-container" class="hidden">
+                            <img id="exam-question-img" src="" alt="Question Diagram" onclick="openImageZoomModal(this.src)" class="max-w-full max-h-72 rounded-xl border border-gray-300 bg-white p-1.5 shadow-2xs cursor-zoom-in hover:opacity-95 transition">
+                            <span class="block text-[11px] text-gray-400 mt-1">Click figure to enlarge</span>
+                        </div>
+
+                        <!-- MCQ Options Container -->
+                        <div id="exam-mcq-options" class="space-y-3 pt-2"></div>
+
+                        <!-- TITA On-Screen Numeric Keypad Container -->
+                        <div id="exam-tita-box" class="hidden pt-2 max-w-xs">
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1.5">Type Your Answer Below:</label>
+                            <input type="text" id="exam-tita-input" readonly placeholder="Use keypad below" class="w-full px-3.5 py-2.5 text-lg font-mono font-bold bg-gray-50 border-2 border-blue-500 rounded-lg mb-3 text-gray-900">
+                            
+                            <!-- Authentic CAT Virtual Keypad -->
+                            <div class="bg-slate-100 p-3 rounded-xl border border-slate-300 grid grid-cols-3 gap-2 select-none">
+                                <button type="button" onclick="titaBackspace()" class="col-span-3 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-xs text-gray-800 shadow-2xs">Backspace</button>
+                                <button type="button" onclick="titaPress('7')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">7</button>
+                                <button type="button" onclick="titaPress('8')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">8</button>
+                                <button type="button" onclick="titaPress('9')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">9</button>
+                                <button type="button" onclick="titaPress('4')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">4</button>
+                                <button type="button" onclick="titaPress('5')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">5</button>
+                                <button type="button" onclick="titaPress('6')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">6</button>
+                                <button type="button" onclick="titaPress('1')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">1</button>
+                                <button type="button" onclick="titaPress('2')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">2</button>
+                                <button type="button" onclick="titaPress('3')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">3</button>
+                                <button type="button" onclick="titaPress('0')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">0</button>
+                                <button type="button" onclick="titaPress('.')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">.</button>
+                                <button type="button" onclick="titaPress('-')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">-</button>
+                                <button type="button" onclick="titaClear()" class="col-span-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded font-bold text-xs text-red-700">Clear All</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom TCS iON Action Bar -->
+                <div class="bg-[#f8fafc] border-t border-gray-300 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="handleMarkForReviewAndNext()" class="px-3.5 py-2 bg-white hover:bg-purple-50 text-purple-800 border border-purple-300 rounded font-semibold text-xs sm:text-sm transition">
+                            Mark for Review & Next
+                        </button>
+                        <button onclick="handleClearResponse()" class="px-3.5 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded font-semibold text-xs sm:text-sm transition">
+                            Clear Response
+                        </button>
+                    </div>
+
+                    <button onclick="handleSaveAndNext()" class="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded font-semibold text-xs sm:text-sm shadow-xs transition">
+                        Save & Next
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: Candidate Profile, Legend & Question Palette -->
+            <aside class="w-full lg:w-80 bg-[#e2e8f0] flex flex-col justify-between max-h-[42vh] lg:max-h-none overflow-y-auto">
+                <div>
+                    <!-- Candidate Info Card -->
+                    <div class="bg-white p-3 border-b border-gray-300 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-sm">
+                            ASP
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-gray-900">CAT Aspirant</div>
+                            <div class="text-[11px] text-gray-500">Roll No: CAT2026-8841</div>
+                        </div>
+                    </div>
+
+                    <!-- Status Legend -->
+                    <div class="bg-white p-3 border-b border-gray-300 grid grid-cols-2 gap-y-2 gap-x-1 text-[11px] text-gray-700">
+                        <div class="flex items-center gap-1.5">
+                            <span id="legend-answered" class="palette-btn status-answered !w-6 !h-6 !text-[10px]">0</span>
+                            <span>Answered</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="legend-not-answered" class="palette-btn status-not-answered !w-6 !h-6 !text-[10px]">0</span>
+                            <span>Not Answered</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="legend-not-visited" class="palette-btn status-not-visited !w-6 !h-6 !text-[10px]">0</span>
+                            <span>Not Visited</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="legend-marked" class="palette-btn status-marked !w-6 !h-6 !text-[10px]">0</span>
+                            <span>Marked</span>
+                        </div>
+                        <div class="col-span-2 flex items-center gap-1.5">
+                            <span id="legend-ans-marked" class="palette-btn status-answered-marked !w-6 !h-6 !text-[10px]">0</span>
+                            <span>Answered & Marked (Evaluated)</span>
+                        </div>
+                    </div>
+
+                    <!-- Palette Section Header -->
+                    <div class="bg-[#3b82f6] text-white px-3 py-1.5 text-xs font-bold">
+                        Section: <span id="palette-sec-name">VARC</span> — Choose a Question
+                    </div>
+
+                    <!-- Question Buttons Grid -->
+                    <div id="exam-palette-grid" class="p-3 flex flex-wrap gap-2.5 bg-[#eff6ff] min-h-[110px]">
+                        <!-- Palette buttons injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Submit Section / Submit Mock Footer -->
+                <div class="p-3 bg-slate-200 border-t border-gray-300 space-y-2">
+                    <button id="next-section-btn" onclick="handleNextSectionManual()" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded shadow-xs transition">
+                        Submit Section & Go Next →
+                    </button>
+                    <button onclick="confirmSubmitExam()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded shadow transition">
+                        Submit Entire Test
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4: AUTOMATED SCORECARD & QUESTION-BY-QUESTION REVIEW             -->
+    <!-- ===================================================================== -->
+    <main id="view-scorecard" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Mock Evaluation Complete</span>
+                <h2 id="scorecard-mock-title" class="text-2xl sm:text-3xl font-bold text-gray-900">Scorecard & Analysis</h2>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="retakeCurrentMock()" class="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-xl shadow-2xs transition">
+                    ↻ Retake Mock
+                </button>
+                <button onclick="switchAppMode('student')" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow transition">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Top KPI Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <div class="text-xs font-semibold text-gray-500 uppercase">Total CAT Score</div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="sc-total-score" class="text-3xl font-extrabold text-blue-600">0</span>
+                    <span id="sc-max-score" class="text-sm font-medium text-gray-400">/ 0</span>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <div class="text-xs font-semibold text-gray-500 uppercase">Overall Accuracy</div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="sc-accuracy" class="text-3xl font-extrabold text-emerald-600">0%</span>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <div class="text-xs font-semibold text-gray-500 uppercase">Attempted</div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span id="sc-attempted" class="text-3xl font-extrabold text-gray-800">0</span>
+                    <span id="sc-total-q" class="text-sm font-medium text-gray-400">/ 0 Qs</span>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                <div class="text-xs font-semibold text-gray-500 uppercase">Correct / Incorrect</div>
+                <div class="mt-2 flex items-center gap-3 text-xl font-extrabold">
+                    <span id="sc-correct" class="text-emerald-600">0 ✓</span>
+                    <span class="text-gray-300">|</span>
+                    <span id="sc-wrong" class="text-red-500">0 ✗</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section-wise Breakdown Table -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/70">
+                <h3 class="font-bold text-gray-900 text-base">Section-Wise Performance</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-3">Section</th>
+                            <th class="px-6 py-3">Total Qs</th>
+                            <th class="px-6 py-3">Attempted</th>
+                            <th class="px-6 py-3 text-emerald-700">Correct</th>
+                            <th class="px-6 py-3 text-red-600">Incorrect</th>
+                            <th class="px-6 py-3">Accuracy</th>
+                            <th class="px-6 py-3 font-bold text-gray-900">Net Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sc-section-table-body" class="divide-y divide-gray-100">
+                        <!-- Rows injected dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detailed Question-by-Question Solution Review -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+                <h3 class="font-bold text-gray-900 text-lg">Detailed Question & Solution Review</h3>
+                <div class="flex flex-wrap gap-1.5 text-xs">
+                    <button onclick="renderReviewList('ALL')" id="rev-filter-ALL" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-800 text-white">All Questions</button>
+                    <button onclick="renderReviewList('CORRECT')" id="rev-filter-CORRECT" class="px-3 py-1.5 rounded-lg font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Correct</button>
+                    <button onclick="renderReviewList('WRONG')" id="rev-filter-WRONG" class="px-3 py-1.5 rounded-lg font-semibold bg-red-50 text-red-700 hover:bg-red-100">Incorrect</button>
+                    <button onclick="renderReviewList('UNATTEMPTED')" id="rev-filter-UNATTEMPTED" class="px-3 py-1.5 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">Unattempted</button>
+                </div>
+            </div>
+
+            <div id="sc-review-list" class="space-y-6 selectable-text">
+                <!-- Review items injected dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // -------------------------------------------------------------------
+        // 1. CLOUD DATABASE & STATE MANAGEMENT
+        // -------------------------------------------------------------------
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let unsubscribeMocks = null;
+
+        const SECTIONS = ['VARC', 'DILR', 'QA'];
+        const SECTION_DURATION_SECONDS = 40 * 60; // 40 minutes per section
+
+        let appData = {
+            mocks: [],
+            selectedAdminMockId: null
+        };
+
+        let adminSectionFilter = 'ALL';
+
+        // Temporary image state while creating/editing a question in Admin Mode
+        let builderImages = {
+            passage: '',
+            question: ''
+        };
+
+        // Active Exam Session State
+        let examState = {
+            mockId: null,
+            mockTitle: '',
+            questionsBySection: { VARC: [], DILR: [], QA: [] },
+            currentSection: 'VARC',
+            currentIndex: 0,
+            responses: {},
+            sectionTimers: { VARC: SECTION_DURATION_SECONDS, DILR: SECTION_DURATION_SECONDS, QA: SECTION_DURATION_SECONDS },
+            completedSections: { VARC: false, DILR: false, QA: false },
+            timerInterval: null,
+            lastResult: null
+        };
+
+        function updateCloudStatusUI(state, detailText = '') {
+            const dot = document.getElementById('cloud-status-dot');
+            const text = document.getElementById('cloud-status-text');
+            const badge = document.getElementById('cloud-user-badge');
+            if (!dot || !text) return;
+
+            if (state === 'connected') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                text.textContent = detailText || 'Cloud Sync Active';
+                if (badge && currentUser) {
+                    badge.textContent = currentUser.uid;
+                    badge.title = `Workspace ID: ${currentUser.uid}`;
+                }
+            } else if (state === 'syncing') {
+                dot.className = 'w-2 h-2 rounded-full bg-blue-500 animate-ping';
+                text.textContent = detailText || 'Saving to Cloud...';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                text.textContent = detailText || 'Offline / Sync Error';
+            }
+        }
+
+        // Pre-loaded Sample Mock so user can test immediately
+        function getDefaultSampleData() {
+            const sampleChartSvg = `data:image/svg+xml;utf8,` + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="520" height="250" viewBox="0 0 520 250">
+                    <rect width="520" height="250" fill="#ffffff"/>
+                    <text x="260" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Quarterly Revenue &amp; Cost (in ₹ Crore) — FY 2025-26</text>
+                    <line x1="60" y1="195" x2="490" y2="195" stroke="#64748b" stroke-width="1.5"/>
+                    <line x1="60" y1="45" x2="60" y2="195" stroke="#64748b" stroke-width="1.5"/>
+                    <text x="50" y="198" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">0</text>
+                    <text x="50" y="148" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">50</text>
+                    <text x="50" y="98" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">100</text>
+                    <text x="50" y="52" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">150</text>
+                    <rect x="85" y="115" width="28" height="80" fill="#2563eb"/><text x="99" y="110" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#1e3a8a">80</text>
+                    <rect x="117" y="145" width="28" height="50" fill="#f59e0b"/><text x="131" y="140" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#92400e">50</text>
+                    <text x="115" y="212" text-anchor="middle" font-family="Arial" font-size="11" font-weight="bold" fill="#334155">Q1</text>
+                    <rect x="185" y="95" width="28" height="100" fill="#2563eb"/><text x="199" y="90" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#1e3a8a">100</text>
+                    <rect x="217" y="135" width="28" height="60" fill="#f59e0b"/><text x="231" y="130" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#92400e">60</text>
+                    <text x="215" y="212" text-anchor="middle" font-family="Arial" font-size="11" font-weight="bold" fill="#334155">Q2</text>
+                    <rect x="285" y="75" width="28" height="120" fill="#2563eb"/><text x="299" y="70" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#1e3a8a">120</text>
+                    <rect x="317" y="120" width="28" height="75" fill="#f59e0b"/><text x="331" y="115" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#92400e">75</text>
+                    <text x="315" y="212" text-anchor="middle" font-family="Arial" font-size="11" font-weight="bold" fill="#334155">Q3</text>
+                    <rect x="385" y="55" width="28" height="140" fill="#2563eb"/><text x="399" y="50" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#1e3a8a">140</text>
+                    <rect x="417" y="105" width="28" height="90" fill="#f59e0b"/><text x="431" y="100" text-anchor="middle" font-family="Arial" font-size="10" font-weight="bold" fill="#92400e">90</text>
+                    <text x="415" y="212" text-anchor="middle" font-family="Arial" font-size="11" font-weight="bold" fill="#334155">Q4</text>
+                    <rect x="175" y="228" width="12" height="12" fill="#2563eb"/><text x="192" y="238" font-family="Arial" font-size="11" fill="#334155">Revenue</text>
+                    <rect x="265" y="228" width="12" height="12" fill="#f59e0b"/><text x="282" y="238" font-family="Arial" font-size="11" fill="#334155">Operating Cost</text>
+                </svg>
+            `);
+
+            return [
+                {
+                    id: 'mock_sample_1',
+                    title: 'CAT 2026 Sample Diagnostic Mock (With DI Chart)',
+                    createdAt: new Date().toISOString(),
+                    questions: [
+                        {
+                            id: 'sq_1',
+                            section: 'VARC',
+                            type: 'MCQ',
+                            passage: 'Technological determinism presumes that a society’s technology drives the development of its social structure and cultural values. Critics, however, argue that technology itself is socially shaped—emerging from economic incentives, institutional choices, and human agency rather than an autonomous trajectory.',
+                            passageImage: '',
+                            text: 'Which of the following best captures the critics’ view mentioned in the passage?',
+                            questionImage: '',
+                            options: [
+                                'Cultural values evolve independently of economic incentives.',
+                                'Technological progress is a product of human and institutional choices.',
+                                'Social structures are rigidly determined by available tools.',
+                                'Autonomous technology inevitably reshapes human agency.'
+                            ],
+                            correctAnswer: 1,
+                            explanation: 'The second sentence explicitly states that critics view technology as socially shaped by economic incentives, institutional choices, and human agency.'
+                        },
+                        {
+                            id: 'sq_2',
+                            section: 'VARC',
+                            type: 'TITA',
+                            passage: '',
+                            passageImage: '',
+                            text: 'The four sentences (labelled 1, 2, 3, 4) below, when properly sequenced, would yield a coherent paragraph. Decide on the proper sequencing of the order of the sentences and key in the sequence of the four numbers as your answer:\n\n1. Yet this very abundance often paralyzes decision-making rather than liberating it.\n2. Modern digital platforms offer consumers an unprecedented variety of choices.\n3. Psychologists refer to this phenomenon as the paradox of choice.\n4. When every option carries an opportunity cost, satisfaction with the final selection declines.',
+                            questionImage: '',
+                            options: [],
+                            correctAnswer: '2134',
+                            explanation: 'Sentence 2 introduces the abundance of choices; 1 contrasts it ("Yet this very abundance"); 3 names the phenomenon; 4 explains why it happens.'
+                        },
+                        {
+                            id: 'sq_3',
+                            section: 'DILR',
+                            type: 'MCQ',
+                            passage: 'Refer to the bar chart showing Quarterly Revenue and Operating Cost (in ₹ Crore) of Zenith Corp for FY 2025-26. Profit = Revenue − Operating Cost.',
+                            passageImage: sampleChartSvg,
+                            text: 'In which quarter was the Profit as a percentage of Operating Cost the highest?',
+                            questionImage: '',
+                            options: [
+                                'Q1',
+                                'Q2',
+                                'Q3',
+                                'Q4'
+                            ],
+                            correctAnswer: 1,
+                            explanation: 'Q1: 30/50 = 60%; Q2: 40/60 = 66.67%; Q3: 45/75 = 60%; Q4: 50/90 = 55.56%. Hence Q2 is the highest.'
+                        },
+                        {
+                            id: 'sq_4',
+                            section: 'DILR',
+                            type: 'TITA',
+                            passage: 'Refer to the bar chart showing Quarterly Revenue and Operating Cost (in ₹ Crore) of Zenith Corp for FY 2025-26. Profit = Revenue − Operating Cost.',
+                            passageImage: sampleChartSvg,
+                            text: 'What is the total Profit (in ₹ Crore) earned by Zenith Corp across all four quarters combined?',
+                            questionImage: '',
+                            options: [],
+                            correctAnswer: '165',
+                            explanation: 'Profits: Q1 = 30, Q2 = 40, Q3 = 45, Q4 = 50. Total = 30 + 40 + 45 + 50 = 165 Crore.'
+                        },
+                        {
+                            id: 'sq_5',
+                            section: 'QA',
+                            type: 'MCQ',
+                            passage: '',
+                            passageImage: '',
+                            text: 'If the sum of the first n terms of an arithmetic progression is 3n² + 5n, what is the 10th term of the progression?',
+                            questionImage: '',
+                            options: [
+                                '58',
+                                '62',
+                                '65',
+                                '68'
+                            ],
+                            correctAnswer: 1,
+                            explanation: 'T_10 = S_10 - S_9 = (3(100) + 50) - (3(81) + 45) = 350 - 288 = 62.'
+                        },
+                        {
+                            id: 'sq_6',
+                            section: 'QA',
+                            type: 'TITA',
+                            passage: '',
+                            passageImage: '',
+                            text: 'A shopkeeper marks up an article by 40% above its cost price and then offers a discount of 25%. If he makes a profit of ₹45, find the cost price (in ₹) of the article.',
+                            questionImage: '',
+                            options: [],
+                            correctAnswer: '900',
+                            explanation: 'Let CP = 100. MP = 140. SP = 140 × 0.75 = 105. Profit = 5% of CP = 45 => CP = 45 × 20 = 900.'
+                        }
+                    ]
+                }
+            ];
+        }
+
+        async function initCloudStorage() {
+            if (!firebaseConfig) {
+                appData.mocks = getDefaultSampleData();
+                appData.selectedAdminMockId = appData.mocks[0].id;
+                updateCloudStatusUI('offline', 'Cloud Config Unavailable');
+                renderStudentLobby();
+                return;
+            }
+
+            try {
+                const firebaseApp = initializeApp(firebaseConfig);
+                auth = getAuth(firebaseApp);
+                db = getFirestore(firebaseApp);
+
+                // RULE 3: Authenticate FIRST before attaching any Firestore listeners or queries
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                currentUser = auth.currentUser;
+                if (!currentUser) {
+                    throw new Error('Authentication did not return a user.');
+                }
+
+                updateCloudStatusUI('connected', 'Cloud Sync Active');
+                subscribeToCloudMocks();
+            } catch (err) {
+                console.error('Cloud initialization error:', err);
+                updateCloudStatusUI('offline', 'Cloud Connection Failed');
+                showToast('Could not connect to cloud storage: ' + err.message, 'error');
+            }
+        }
+
+        function getUserMocksCollectionRef() {
+            // RULE 1: Strict private user path /artifacts/{appId}/users/{userId}/cat_mocks
+            return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks');
+        }
+
+        function subscribeToCloudMocks() {
+            if (!currentUser || !db) return;
+            if (unsubscribeMocks) unsubscribeMocks();
+
+            // RULE 2: Simple collection query without orderBy/limit; sort in JS memory
+            const mocksRef = getUserMocksCollectionRef();
+            unsubscribeMocks = onSnapshot(
+                mocksRef,
+                async (snapshot) => {
+                    if (snapshot.empty) {
+                        // Seed initial sample mock into cloud on first visit
+                        const sample = getDefaultSampleData()[0];
+                        await saveMockToCloud(sample, true);
+                        return;
+                    }
+
+                    const loadedMocks = [];
+                    snapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        if (data && data.title) {
+                            loadedMocks.push({
+                                id: docSnap.id,
+                                title: data.title,
+                                createdAt: data.createdAt || new Date().toISOString(),
+                                questions: Array.isArray(data.questions) ? data.questions : []
+                            });
+                        }
+                    });
+
+                    // Sort newest first in JS memory
+                    loadedMocks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    appData.mocks = loadedMocks;
+
+                    if (!appData.selectedAdminMockId || !appData.mocks.some(m => m.id === appData.selectedAdminMockId)) {
+                        appData.selectedAdminMockId = appData.mocks.length > 0 ? appData.mocks[0].id : null;
+                    }
+
+                    updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
+                    renderStudentLobby();
+                    if (!document.getElementById('view-admin').classList.contains('hidden')) {
+                        renderAdminWorkspace();
+                    }
+                },
+                (error) => {
+                    console.error('Firestore onSnapshot error:', error);
+                    updateCloudStatusUI('offline', 'Sync Permission / Network Error');
+                    showToast('Cloud sync error: ' + error.message, 'error');
+                }
+            );
+        }
+
+        async function saveMockToCloud(mockObj, silent = false) {
+            if (!currentUser || !db) {
+                showToast('Not connected to cloud storage yet.', 'error');
+                return false;
+            }
+            try {
+                updateCloudStatusUI('syncing', 'Saving to Cloud...');
+                // RULE 1: Strict private document path /artifacts/{appId}/users/{userId}/cat_mocks/{mockId}
+                const mockDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks', mockObj.id);
+                await setDoc(mockDocRef, {
+                    id: mockObj.id,
+                    title: mockObj.title,
+                    createdAt: mockObj.createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    questions: mockObj.questions || []
+                });
+                updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
+                if (gDriveState.accessToken && !silent) {
+                    setTimeout(() => syncAllToGoogleDrive(true), 400);
+                }
+                return true;
+            } catch (err) {
+                console.error('Error saving mock to cloud:', err);
+                updateCloudStatusUI('offline', 'Save Failed');
+                if (!silent) {
+                    showToast('Cloud save failed (check image sizes < 900KB total per mock): ' + err.message, 'error');
+                }
+                return false;
+            }
+        }
+
+        async function deleteMockFromCloud(mockId) {
+            if (!currentUser || !db) return;
+            try {
+                updateCloudStatusUI('syncing', 'Deleting from Cloud...');
+                const mockDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks', mockId);
+                await deleteDoc(mockDocRef);
+                updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
+                if (gDriveState.accessToken) {
+                    setTimeout(() => syncAllToGoogleDrive(true), 400);
+                }
+            } catch (err) {
+                console.error('Error deleting mock from cloud:', err);
+                updateCloudStatusUI('offline', 'Delete Failed');
+                showToast('Failed to delete mock from cloud: ' + err.message, 'error');
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // 1B. PERSONAL GOOGLE DRIVE INTEGRATION (OAuth2 + Drive REST API v3)
+        // -------------------------------------------------------------------
+        const GDRIVE_FILE_NAME = 'CAT_Mocks_Studio_Backup.json';
+        const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+
+        let gDriveState = {
+            clientId: '',
+            accessToken: null,
+            tokenClient: null,
+            userEmail: '',
+            driveFileId: null
+        };
+
+        function toggleGDriveHelp() {
+            const box = document.getElementById('gdrive-help-box');
+            box.classList.toggle('hidden');
+        }
+
+        function updateGDriveUI() {
+            const badge = document.getElementById('gdrive-badge');
+            const discPanel = document.getElementById('gdrive-disconnected-panel');
+            const connPanel = document.getElementById('gdrive-connected-panel');
+            const emailEl = document.getElementById('gdrive-user-email');
+
+            if (!badge || !discPanel || !connPanel) return;
+
+            if (gDriveState.accessToken) {
+                badge.textContent = 'Connected';
+                badge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800';
+                discPanel.classList.add('hidden');
+                connPanel.classList.remove('hidden');
+                emailEl.textContent = gDriveState.userEmail || 'Google Drive Linked';
+            } else {
+                badge.textContent = 'Not Connected';
+                badge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600';
+                discPanel.classList.remove('hidden');
+                connPanel.classList.add('hidden');
+            }
+        }
+
+        function connectGoogleDrive() {
+            const inputEl = document.getElementById('gdrive-client-id-input');
+            const clientId = (inputEl ? inputEl.value.trim() : '') || gDriveState.clientId;
+
+            if (!clientId) {
+                showToast('Please paste your Google OAuth Client ID first (click "How to get free ID?").', 'error');
+                document.getElementById('gdrive-help-box').classList.remove('hidden');
+                return;
+            }
+
+            if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+                showToast('Google Sign-In library is still loading. Please try again in 2 seconds.', 'error');
+                return;
+            }
+
+            gDriveState.clientId = clientId;
+            saveGDriveSettingsToCloud(clientId);
+
+            try {
+                gDriveState.tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: GDRIVE_SCOPE,
+                    callback: async (tokenResponse) => {
+                        if (tokenResponse.error) {
+                            showToast('Google Sign-In error: ' + tokenResponse.error, 'error');
+                            return;
+                        }
+                        gDriveState.accessToken = tokenResponse.access_token;
+                        await fetchGoogleUserEmail();
+                        updateGDriveUI();
+                        showToast('Connected to your Google Drive!');
+                        await checkOrSyncInitialDriveFile();
+                    }
+                });
+
+                gDriveState.tokenClient.requestAccessToken({ prompt: 'consent' });
+            } catch (err) {
+                console.error('OAuth init error:', err);
+                showToast('Failed to initialize Google Sign-In: ' + err.message, 'error');
+            }
+        }
+
+        function disconnectGoogleDrive() {
+            if (gDriveState.accessToken && typeof google !== 'undefined' && google.accounts?.oauth2) {
+                google.accounts.oauth2.revoke(gDriveState.accessToken, () => {});
+            }
+            gDriveState.accessToken = null;
+            gDriveState.userEmail = '';
+            gDriveState.driveFileId = null;
+            updateGDriveUI();
+            showToast('Disconnected from Google Drive.', 'info');
+        }
+
+        async function saveGDriveSettingsToCloud(clientId) {
+            if (!currentUser || !db) return;
+            try {
+                const settingsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'gdrive');
+                await setDoc(settingsRef, { clientId }, { merge: true });
+            } catch (e) {
+                console.warn('Could not save clientId setting:', e);
+            }
+        }
+
+        async function loadGDriveSettingsFromCloud() {
+            if (!currentUser || !db) return;
+            try {
+                const settingsCol = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'settings');
+                onSnapshot(settingsCol, (snap) => {
+                    snap.forEach((docSnap) => {
+                        if (docSnap.id === 'gdrive' && docSnap.data()?.clientId) {
+                            gDriveState.clientId = docSnap.data().clientId;
+                            const inputEl = document.getElementById('gdrive-client-id-input');
+                            if (inputEl && !inputEl.value) {
+                                inputEl.value = gDriveState.clientId;
+                            }
+                        }
+                    });
+                }, () => {});
+            } catch (e) {
+                console.warn('Settings listener skipped:', e);
+            }
+        }
+
+        async function fetchGoogleUserEmail() {
+            if (!gDriveState.accessToken) return;
+            try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${gDriveState.accessToken}` }
+                });
+                if (res.ok) {
+                    const info = await res.json();
+                    gDriveState.userEmail = info.email || '';
+                }
+            } catch (e) {
+                console.warn('Could not fetch user email:', e);
+            }
+        }
+
+        async function findDriveBackupFile() {
+            if (!gDriveState.accessToken) return null;
+            const query = encodeURIComponent(`name='${GDRIVE_FILE_NAME}' and trashed=false`);
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)`, {
+                headers: { Authorization: `Bearer ${gDriveState.accessToken}` }
+            });
+            if (!res.ok) throw new Error('Failed to search Google Drive files.');
+            const data = await res.json();
+            if (data.files && data.files.length > 0) {
+                gDriveState.driveFileId = data.files[0].id;
+                return data.files[0];
+            }
+            return null;
+        }
+
+        async function checkOrSyncInitialDriveFile() {
+            try {
+                const existing = await findDriveBackupFile();
+                if (existing) {
+                    const lastSyncEl = document.getElementById('gdrive-last-sync');
+                    if (lastSyncEl) lastSyncEl.textContent = 'Backup file found in Drive';
+                } else {
+                    await syncAllToGoogleDrive(true);
+                }
+            } catch (err) {
+                console.error('Drive check error:', err);
+            }
+        }
+
+        async function syncAllToGoogleDrive(silent = false) {
+            if (!gDriveState.accessToken) {
+                if (!silent) showToast('Please connect your Google Drive first.', 'error');
+                return;
+            }
+
+            const lastSyncEl = document.getElementById('gdrive-last-sync');
+            if (lastSyncEl) lastSyncEl.textContent = 'Uploading to Google Drive...';
+
+            try {
+                if (!gDriveState.driveFileId) {
+                    await findDriveBackupFile();
+                }
+
+                const fileContent = JSON.stringify({
+                    app: 'CAT Mock Studio',
+                    exportedAt: new Date().toISOString(),
+                    mocks: appData.mocks
+                }, null, 2);
+
+                const metadata = {
+                    name: GDRIVE_FILE_NAME,
+                    mimeType: 'application/json'
+                };
+
+                const boundary = '-------cat_mock_studio_boundary_314159';
+                const delimiter = `\r\n--${boundary}\r\n`;
+                const closeDelim = `\r\n--${boundary}--`;
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    fileContent +
+                    closeDelim;
+
+                const url = gDriveState.driveFileId
+                    ? `https://www.googleapis.com/upload/drive/v3/files/${gDriveState.driveFileId}?uploadType=multipart`
+                    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+
+                const method = gDriveState.driveFileId ? 'PATCH' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        Authorization: `Bearer ${gDriveState.accessToken}`,
+                        'Content-Type': `multipart/related; boundary="${boundary}"`
+                    },
+                    body: multipartRequestBody
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        gDriveState.accessToken = null;
+                        updateGDriveUI();
+                        throw new Error('Google Drive session expired. Please click Connect again.');
+                    }
+                    throw new Error(`Drive API returned ${res.status}`);
+                }
+
+                const result = await res.json();
+                if (result && result.id) {
+                    gDriveState.driveFileId = result.id;
+                }
+
+                const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (lastSyncEl) lastSyncEl.textContent = `Saved to Drive at ${timeStr}`;
+                if (!silent) showToast('All mocks & charts saved directly to your Google Drive!');
+            } catch (err) {
+                console.error('Google Drive upload error:', err);
+                if (lastSyncEl) lastSyncEl.textContent = 'Sync failed — click Save Now';
+                if (!silent) showToast('Google Drive save failed: ' + err.message, 'error');
+            }
+        }
+
+        async function loadFromGoogleDrive() {
+            if (!gDriveState.accessToken) {
+                showToast('Please connect your Google Drive first.', 'error');
+                return;
+            }
+
+            try {
+                const fileMeta = await findDriveBackupFile();
+                if (!fileMeta) {
+                    showToast('No CAT_Mocks_Studio_Backup.json file found in your Google Drive yet.', 'info');
+                    return;
+                }
+
+                const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`, {
+                    headers: { Authorization: `Bearer ${gDriveState.accessToken}` }
+                });
+
+                if (!res.ok) throw new Error('Could not download backup from Google Drive.');
+                const parsed = await res.json();
+                const importedMocks = Array.isArray(parsed) ? parsed : parsed.mocks;
+
+                if (!Array.isArray(importedMocks) || importedMocks.length === 0) {
+                    showToast('Your Google Drive backup file has 0 mocks.', 'info');
+                    return;
+                }
+
+                for (const m of importedMocks) {
+                    if (m && m.title && Array.isArray(m.questions)) {
+                        await saveMockToCloud(m, true);
+                    }
+                }
+
+                const lastSyncEl = document.getElementById('gdrive-last-sync');
+                if (lastSyncEl) lastSyncEl.textContent = `Loaded ${importedMocks.length} mock(s) from Drive`;
+                showToast(`Restored ${importedMocks.length} mock(s) from your Google Drive!`);
+            } catch (err) {
+                console.error('Google Drive download error:', err);
+                showToast('Failed to load from Google Drive: ' + err.message, 'error');
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // 2. UI HELPERS (Toasts, Confirm Dialogs, View Routing)
+        // -------------------------------------------------------------------
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'error'
+                ? 'bg-red-600 text-white'
+                : type === 'info'
+                ? 'bg-slate-800 text-white'
+                : 'bg-emerald-600 text-white';
+
+            toast.className = `${colors} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-semibold flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-0`;
+            toast.innerHTML = `<span>${type === 'error' ? '⚠️' : type === 'info' ? 'ℹ️' : '✅'}</span><span>${escapeHTML(message)}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function customConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => {
+                cleanup();
+                onConfirm();
+            };
+            cancelBtn.onclick = cleanup;
+        }
+
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function switchAppMode(mode) {
+            // Stop any running exam timer if leaving exam
+            if (examState.timerInterval) {
+                clearInterval(examState.timerInterval);
+                examState.timerInterval = null;
+            }
+
+            document.getElementById('global-header').classList.remove('hidden');
+            document.getElementById('view-student-lobby').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-exam-engine').classList.add('hidden');
+            document.getElementById('view-scorecard').classList.add('hidden');
+
+            const studentBtn = document.getElementById('nav-student-btn');
+            const adminBtn = document.getElementById('nav-admin-btn');
+
+            if (mode === 'student') {
+                document.getElementById('view-student-lobby').classList.remove('hidden');
+                studentBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 bg-blue-600 text-white shadow';
+                adminBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white';
+                renderStudentLobby();
+            } else if (mode === 'admin') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                adminBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 bg-blue-600 text-white shadow';
+                studentBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white';
+                renderAdminWorkspace();
+            } else if (mode === 'exam') {
+                document.getElementById('global-header').classList.add('hidden');
+                document.getElementById('view-exam-engine').classList.remove('hidden');
+            } else if (mode === 'scorecard') {
+                document.getElementById('view-scorecard').classList.remove('hidden');
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // 3. STUDENT LOBBY RENDERING
+        // -------------------------------------------------------------------
+        function renderStudentLobby() {
+            const grid = document.getElementById('student-mock-grid');
+            const countBadge = document.getElementById('lobby-mock-count');
+            countBadge.textContent = `${appData.mocks.length} Mock${appData.mocks.length === 1 ? '' : 's'}`;
+
+            if (appData.mocks.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+                        <p class="text-gray-600 font-medium mb-3">No mock tests available yet.</p>
+                        <button onclick="switchAppMode('admin')" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Create Your First Mock</button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = appData.mocks.map(mock => {
+                const varcCount = mock.questions.filter(q => q.section === 'VARC').length;
+                const dilrCount = mock.questions.filter(q => q.section === 'DILR').length;
+                const qaCount = mock.questions.filter(q => q.section === 'QA').length;
+                const totalQ = mock.questions.length;
+                const maxMarks = totalQ * 3;
+
+                return `
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-xs hover:shadow-md transition p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg">CAT Full / Sectional</span>
+                                <span class="text-xs text-gray-400 font-medium">${totalQ} Qs • ${maxMarks} Marks</span>
+                            </div>
+                            <h4 class="font-bold text-gray-900 text-lg mb-3 line-clamp-2">${escapeHTML(mock.title)}</h4>
+                            
+                            <div class="grid grid-cols-3 gap-2 mb-5 text-center">
+                                <div class="bg-slate-50 rounded-xl p-2 border border-slate-100">
+                                    <div class="text-[11px] font-semibold text-gray-500">VARC</div>
+                                    <div class="text-sm font-bold text-gray-900">${varcCount} Qs</div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-2 border border-slate-100">
+                                    <div class="text-[11px] font-semibold text-gray-500">DILR</div>
+                                    <div class="text-sm font-bold text-gray-900">${dilrCount} Qs</div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-2 border border-slate-100">
+                                    <div class="text-[11px] font-semibold text-gray-500">QA</div>
+                                    <div class="text-sm font-bold text-gray-900">${qaCount} Qs</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="startMockExam('${mock.id}')" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-xs transition">
+                                Start Mock Test →
+                            </button>
+                            <button onclick="openMockInAdmin('${mock.id}')" class="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition" title="Edit Questions">
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openMockInAdmin(mockId) {
+            appData.selectedAdminMockId = mockId;
+            switchAppMode('admin');
+        }
+
+        // -------------------------------------------------------------------
+        // 4. ADMIN / MOCK CREATOR WORKSPACE
+        // -------------------------------------------------------------------
+        function getSelectedAdminMock() {
+            return appData.mocks.find(m => m.id === appData.selectedAdminMockId) || appData.mocks[0] || null;
+        }
+
+        function openNewMockInput() {
+            document.getElementById('new-mock-box').classList.remove('hidden');
+            document.getElementById('new-mock-title-input').focus();
+        }
+
+        function closeNewMockInput() {
+            document.getElementById('new-mock-box').classList.add('hidden');
+            document.getElementById('new-mock-title-input').value = '';
+        }
+
+        async function createNewMock() {
+            const titleInput = document.getElementById('new-mock-title-input');
+            const title = titleInput.value.trim();
+            if (!title) {
+                showToast('Please enter a Mock Test title.', 'error');
+                return;
+            }
+            const newMock = {
+                id: 'mock_' + Date.now(),
+                title: title,
+                createdAt: new Date().toISOString(),
+                questions: []
+            };
+            appData.selectedAdminMockId = newMock.id;
+            closeNewMockInput();
+            resetQuestionForm();
+
+            const saved = await saveMockToCloud(newMock);
+            if (saved) {
+                showToast(`Created & saved "${title}" to cloud!`);
+            }
+        }
+
+        function selectAdminMock(mockId) {
+            appData.selectedAdminMockId = mockId;
+            resetQuestionForm();
+            renderAdminWorkspace();
+        }
+
+        function deleteSelectedMock() {
+            const mock = getSelectedAdminMock();
+            if (!mock) return;
+            customConfirm(
+                'Delete Mock Test?',
+                `Are you sure you want to delete "${mock.title}" and all ${mock.questions.length} of its questions from the cloud?`,
+                async () => {
+                    if (appData.selectedAdminMockId === mock.id) {
+                        const remaining = appData.mocks.filter(m => m.id !== mock.id);
+                        appData.selectedAdminMockId = remaining.length > 0 ? remaining[0].id : null;
+                    }
+                    await deleteMockFromCloud(mock.id);
+                    showToast('Mock deleted from cloud.', 'info');
+                }
+            );
+        }
+
+        function renderAdminWorkspace() {
+            const listContainer = document.getElementById('admin-mock-list');
+            const selectedMock = getSelectedAdminMock();
+
+            if (appData.mocks.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">No mocks yet. Click "+ New Mock" above.</p>`;
+                document.getElementById('admin-selected-mock-title').textContent = 'No Mock Selected';
+                document.getElementById('admin-selected-mock-stats').textContent = 'Create a mock on the left to start adding questions.';
+                document.getElementById('admin-questions-list').innerHTML = '';
+                return;
+            }
+
+            listContainer.innerHTML = appData.mocks.map(m => {
+                const isSelected = selectedMock && m.id === selectedMock.id;
+                return `
+                    <div onclick="selectAdminMock('${m.id}')" class="p-3 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2 ${isSelected ? 'bg-blue-50 border-blue-500 shadow-2xs' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}">
+                        <div class="truncate">
+                            <div class="font-bold text-sm text-gray-900 truncate">${escapeHTML(m.title)}</div>
+                            <div class="text-[11px] text-gray-500">${m.questions.length} Question${m.questions.length === 1 ? '' : 's'}</div>
+                        </div>
+                        ${isSelected ? '<span class="text-xs font-bold text-blue-600 shrink-0">Active</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+
+            if (selectedMock) {
+                const v = selectedMock.questions.filter(q => q.section === 'VARC').length;
+                const d = selectedMock.questions.filter(q => q.section === 'DILR').length;
+                const q = selectedMock.questions.filter(q => q.section === 'QA').length;
+
+                document.getElementById('admin-selected-mock-title').textContent = selectedMock.title;
+                document.getElementById('admin-selected-mock-stats').textContent = `Total: ${selectedMock.questions.length} Qs  •  VARC: ${v}  |  DILR: ${d}  |  QA: ${q}`;
+                renderAdminQuestionsList(selectedMock);
+            }
+        }
+
+        function toggleQuestionTypeFields() {
+            const type = document.getElementById('q-type').value;
+            const mcqBox = document.getElementById('mcq-fields-container');
+            const titaBox = document.getElementById('tita-fields-container');
+
+            if (type === 'MCQ') {
+                mcqBox.classList.remove('hidden');
+                titaBox.classList.add('hidden');
+            } else {
+                mcqBox.classList.add('hidden');
+                titaBox.classList.remove('hidden');
+            }
+        }
+
+        function reusePreviousPassage() {
+            const mock = getSelectedAdminMock();
+            if (!mock || mock.questions.length === 0) {
+                showToast('No previous questions in this mock to copy a passage from.', 'info');
+                return;
+            }
+            for (let i = mock.questions.length - 1; i >= 0; i--) {
+                const prev = mock.questions[i];
+                if ((prev.passage && prev.passage.trim()) || (prev.passageImage && prev.passageImage.trim())) {
+                    document.getElementById('q-passage').value = prev.passage || '';
+                    document.getElementById('q-section').value = prev.section;
+                    if (prev.passageImage) {
+                        setBuilderImage('passage', prev.passageImage);
+                    } else {
+                        removeImage('passage');
+                    }
+                    showToast('Copied passage & chart from previous set!');
+                    return;
+                }
+            }
+            showToast('No passage or chart found in previous questions.', 'info');
+        }
+
+        // -------------------------------------------------------------------
+        // IMAGE UPLOAD, PASTE, DRAG-DROP & COMPRESSION HELPERS
+        // -------------------------------------------------------------------
+        function compressImageFile(file, callback) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please select a valid image file.', 'error');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX_WIDTH = 850;
+                    const MAX_HEIGHT = 650;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                        const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                    callback(compressedDataUrl);
+                };
+                img.onerror = () => showToast('Could not process image file.', 'error');
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setBuilderImage(target, dataUrl) {
+            builderImages[target] = dataUrl || '';
+            const previewWrap = document.getElementById(`${target}-img-preview-wrap`);
+            const previewImg = document.getElementById(`${target}-img-preview`);
+            if (dataUrl) {
+                previewImg.src = dataUrl;
+                previewWrap.classList.remove('hidden');
+            } else {
+                previewImg.src = '';
+                previewWrap.classList.add('hidden');
+            }
+        }
+
+        function removeImage(target) {
+            setBuilderImage(target, '');
+            const fileInput = document.getElementById(`${target}-img-file`);
+            if (fileInput) fileInput.value = '';
+            const urlInput = document.getElementById(`${target}-img-url-input`);
+            if (urlInput) urlInput.value = '';
+        }
+
+        function handleImageFileSelect(event, target) {
+            const file = event.target.files[0];
+            if (!file) return;
+            compressImageFile(file, (dataUrl) => {
+                setBuilderImage(target, dataUrl);
+                showToast(`${target === 'passage' ? 'Chart' : 'Diagram'} image attached!`);
+            });
+        }
+
+        function handleDragOver(event, zoneId) {
+            event.preventDefault();
+            document.getElementById(zoneId).classList.add('border-blue-500', 'bg-blue-50/40');
+        }
+
+        function handleDragLeave(event, zoneId) {
+            event.preventDefault();
+            document.getElementById(zoneId).classList.remove('border-blue-500', 'bg-blue-50/40');
+        }
+
+        function handleImageDrop(event, target) {
+            event.preventDefault();
+            document.getElementById(`${target}-img-dropzone`).classList.remove('border-blue-500', 'bg-blue-50/40');
+            const file = event.dataTransfer && event.dataTransfer.files[0];
+            if (file) {
+                compressImageFile(file, (dataUrl) => {
+                    setBuilderImage(target, dataUrl);
+                    showToast(`${target === 'passage' ? 'Chart' : 'Diagram'} image dropped & attached!`);
+                });
+            }
+        }
+
+        function handleImagePaste(event, target) {
+            const items = (event.clipboardData || (event.originalEvent && event.originalEvent.clipboardData)).items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    event.preventDefault();
+                    const blob = items[i].getAsFile();
+                    compressImageFile(blob, (dataUrl) => {
+                        setBuilderImage(target, dataUrl);
+                        showToast(`Pasted ${target === 'passage' ? 'chart' : 'diagram'} image from clipboard!`);
+                    });
+                    return;
+                }
+            }
+        }
+
+        function toggleUrlInput(target) {
+            const box = document.getElementById(`${target}-url-box`);
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) {
+                document.getElementById(`${target}-img-url-input`).focus();
+            }
+        }
+
+        function applyImageUrl(target) {
+            const url = document.getElementById(`${target}-img-url-input`).value.trim();
+            if (!url) {
+                showToast('Please enter a valid image URL.', 'error');
+                return;
+            }
+            setBuilderImage(target, url);
+            document.getElementById(`${target}-url-box`).classList.add('hidden');
+            showToast('Image URL attached!');
+        }
+
+        function openImageZoomModal(src) {
+            if (!src) return;
+            const modal = document.getElementById('image-zoom-modal');
+            document.getElementById('image-zoom-target').src = src;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeImageZoomModal() {
+            const modal = document.getElementById('image-zoom-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('image-zoom-target').src = '';
+        }
+
+        async function saveQuestionFromForm(event) {
+            event.preventDefault();
+            const mock = getSelectedAdminMock();
+            if (!mock) {
+                showToast('Please create or select a mock test first.', 'error');
+                return;
+            }
+
+            const editId = document.getElementById('edit-question-id').value;
+            const section = document.getElementById('q-section').value;
+            const type = document.getElementById('q-type').value;
+            const passage = document.getElementById('q-passage').value.trim();
+            const passageImage = builderImages.passage || '';
+            const text = document.getElementById('q-text').value.trim();
+            const questionImage = builderImages.question || '';
+            const explanation = document.getElementById('q-explanation').value.trim();
+
+            if (!text) {
+                showToast('Question text is required.', 'error');
+                return;
+            }
+
+            let options = [];
+            let correctAnswer = null;
+
+            if (type === 'MCQ') {
+                options = [
+                    document.getElementById('opt-0').value.trim(),
+                    document.getElementById('opt-1').value.trim(),
+                    document.getElementById('opt-2').value.trim(),
+                    document.getElementById('opt-3').value.trim()
+                ];
+                if (options.some(opt => !opt)) {
+                    showToast('Please fill in all 4 MCQ options (A, B, C, D).', 'error');
+                    return;
+                }
+                const selectedRadio = document.querySelector('input[name="mcq-correct"]:checked');
+                correctAnswer = selectedRadio ? parseInt(selectedRadio.value, 10) : 0;
+            } else {
+                const titaVal = document.getElementById('tita-correct').value.trim();
+                if (!titaVal) {
+                    showToast('Please enter the correct TITA answer.', 'error');
+                    return;
+                }
+                correctAnswer = titaVal;
+            }
+
+            const updatedQuestions = [...mock.questions];
+
+            if (editId) {
+                const idx = updatedQuestions.findIndex(q => q.id === editId);
+                if (idx !== -1) {
+                    updatedQuestions[idx] = {
+                        ...updatedQuestions[idx],
+                        section,
+                        type,
+                        passage,
+                        passageImage,
+                        text,
+                        questionImage,
+                        options,
+                        correctAnswer,
+                        explanation
+                    };
+                }
+            } else {
+                updatedQuestions.push({
+                    id: 'q_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                    section,
+                    type,
+                    passage,
+                    passageImage,
+                    text,
+                    questionImage,
+                    options,
+                    correctAnswer,
+                    explanation
+                });
+            }
+
+            const updatedMock = { ...mock, questions: updatedQuestions };
+            const saved = await saveMockToCloud(updatedMock);
+            if (saved) {
+                showToast(editId ? 'Question updated in cloud!' : `Question added to ${section} & synced to cloud!`);
+                resetQuestionForm();
+            }
+        }
+
+        function resetQuestionForm() {
+            document.getElementById('edit-question-id').value = '';
+            document.getElementById('q-text').value = '';
+            document.getElementById('q-passage').value = '';
+            removeImage('passage');
+            removeImage('question');
+            document.getElementById('opt-0').value = '';
+            document.getElementById('opt-1').value = '';
+            document.getElementById('opt-2').value = '';
+            document.getElementById('opt-3').value = '';
+            document.getElementById('tita-correct').value = '';
+            document.getElementById('q-explanation').value = '';
+            document.querySelector('input[name="mcq-correct"][value="0"]').checked = true;
+
+            document.getElementById('builder-form-heading').textContent = 'Add New Question';
+            document.getElementById('save-question-submit-btn').textContent = '+ Add Question to Mock';
+            document.getElementById('cancel-edit-q-btn').classList.add('hidden');
+            toggleQuestionTypeFields();
+        }
+
+        function editAdminQuestion(qId) {
+            const mock = getSelectedAdminMock();
+            if (!mock) return;
+            const q = mock.questions.find(item => item.id === qId);
+            if (!q) return;
+
+            document.getElementById('edit-question-id').value = q.id;
+            document.getElementById('q-section').value = q.section;
+            document.getElementById('q-type').value = q.type;
+            toggleQuestionTypeFields();
+
+            document.getElementById('q-passage').value = q.passage || '';
+            setBuilderImage('passage', q.passageImage || '');
+            document.getElementById('q-text').value = q.text || '';
+            setBuilderImage('question', q.questionImage || '');
+            document.getElementById('q-explanation').value = q.explanation || '';
+
+            if (q.type === 'MCQ') {
+                q.options.forEach((opt, idx) => {
+                    document.getElementById(`opt-${idx}`).value = opt;
+                });
+                const radio = document.querySelector(`input[name="mcq-correct"][value="${q.correctAnswer}"]`);
+                if (radio) radio.checked = true;
+            } else {
+                document.getElementById('tita-correct').value = q.correctAnswer;
+            }
+
+            document.getElementById('builder-form-heading').textContent = 'Edit Question';
+            document.getElementById('save-question-submit-btn').textContent = 'Save Changes';
+            document.getElementById('cancel-edit-q-btn').classList.remove('hidden');
+
+            document.getElementById('question-builder-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteAdminQuestion(qId) {
+            const mock = getSelectedAdminMock();
+            if (!mock) return;
+            const updatedMock = {
+                ...mock,
+                questions: mock.questions.filter(q => q.id !== qId)
+            };
+            saveMockToCloud(updatedMock).then((saved) => {
+                if (saved) showToast('Question removed & synced to cloud.', 'info');
+            });
+        }
+
+        function filterAdminQuestions(sec) {
+            adminSectionFilter = sec;
+            ['ALL', 'VARC', 'DILR', 'QA'].forEach(s => {
+                const btn = document.getElementById(`filter-btn-${s}`);
+                if (s === sec) {
+                    btn.className = 'px-3 py-1 rounded-lg font-semibold bg-slate-800 text-white';
+                } else {
+                    btn.className = 'px-3 py-1 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200';
+                }
+            });
+            const mock = getSelectedAdminMock();
+            if (mock) renderAdminQuestionsList(mock);
+        }
+
+        function renderAdminQuestionsList(mock) {
+            const container = document.getElementById('admin-questions-list');
+            const filtered = adminSectionFilter === 'ALL'
+                ? mock.questions
+                : mock.questions.filter(q => q.section === adminSectionFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-sm text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">No questions in this view yet. Use the form above to add questions!</div>`;
+                return;
+            }
+
+            const optionLetters = ['A', 'B', 'C', 'D'];
+            container.innerHTML = filtered.map((q) => {
+                const ansBadge = q.type === 'MCQ'
+                    ? `Option ${optionLetters[q.correctAnswer]} (${escapeHTML(q.options[q.correctAnswer])})`
+                    : `TITA: ${escapeHTML(q.correctAnswer)}`;
+
+                return `
+                    <div class="p-4 rounded-xl border border-gray-200 bg-gray-50/60 hover:bg-white transition">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                                <span class="px-2 py-0.5 text-[11px] font-bold rounded bg-blue-100 text-blue-800">${q.section}</span>
+                                <span class="px-2 py-0.5 text-[11px] font-bold rounded ${q.type === 'MCQ' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-800'}">${q.type}</span>
+                                ${q.passage ? `<span class="px-2 py-0.5 text-[11px] font-medium rounded bg-purple-100 text-purple-800">Has Passage/Set</span>` : ''}
+                                ${q.passageImage ? `<span class="px-2 py-0.5 text-[11px] font-medium rounded bg-teal-100 text-teal-800">📊 Chart Image</span>` : ''}
+                                ${q.questionImage ? `<span class="px-2 py-0.5 text-[11px] font-medium rounded bg-indigo-100 text-indigo-800">📐 Diagram</span>` : ''}
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="editAdminQuestion('${q.id}')" class="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg">Edit</button>
+                                <button onclick="deleteAdminQuestion('${q.id}')" class="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg">Delete</button>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium text-gray-900 line-clamp-2 mb-2">${escapeHTML(q.text)}</p>
+                        ${(q.passageImage || q.questionImage) ? `
+                            <div class="flex flex-wrap gap-3 mb-2.5">
+                                ${q.passageImage ? `<img src="${q.passageImage}" alt="Set Chart" onclick="openImageZoomModal(this.src)" class="h-16 rounded border border-gray-300 bg-white p-0.5 cursor-zoom-in" title="Set Chart Image">` : ''}
+                                ${q.questionImage ? `<img src="${q.questionImage}" alt="Question Diagram" onclick="openImageZoomModal(this.src)" class="h-16 rounded border border-gray-300 bg-white p-0.5 cursor-zoom-in" title="Question Diagram">` : ''}
+                            </div>
+                        ` : ''}
+                        <div class="text-xs font-semibold text-emerald-700 bg-emerald-50 inline-block px-2.5 py-1 rounded-lg border border-emerald-200">
+                            ✓ Answer: ${ansBadge}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function launchSelectedMockFromAdmin() {
+            const mock = getSelectedAdminMock();
+            if (!mock) return;
+            startMockExam(mock.id);
+        }
+
+        // JSON Export / Import / Reset
+        function exportMocksJSON() {
+            const dataStr = JSON.stringify(appData.mocks, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cat_mocks_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Exported mocks JSON file!');
+        }
+
+        function importMocksJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Invalid JSON format');
+                    const validMocks = imported.filter(m => m && m.title && Array.isArray(m.questions));
+                    if (validMocks.length === 0) throw new Error('No valid mocks found in file');
+
+                    for (const m of validMocks) {
+                        const mockToSave = {
+                            ...m,
+                            id: m.id || ('mock_' + Date.now() + '_' + Math.floor(Math.random() * 1000)),
+                            createdAt: m.createdAt || new Date().toISOString()
+                        };
+                        await saveMockToCloud(mockToSave);
+                    }
+                    showToast(`Imported & synced ${validMocks.length} mock(s) to cloud!`);
+                } catch (err) {
+                    showToast('Failed to import JSON: ' + err.message, 'error');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function resetSampleData() {
+            customConfirm('Restore Sample Mock?', 'This will add the default CAT Sample Diagnostic Mock to your cloud workspace.', async () => {
+                const sample = getDefaultSampleData()[0];
+                sample.id = 'mock_sample_' + Date.now();
+                appData.selectedAdminMockId = sample.id;
+                const saved = await saveMockToCloud(sample);
+                if (saved) showToast('Sample mock restored to cloud!');
+            });
+        }
+
+        // -------------------------------------------------------------------
+        // 5. AUTHENTIC TCS iON / CAT EXAM ENGINE
+        // -------------------------------------------------------------------
+        function startMockExam(mockId) {
+            const mock = appData.mocks.find(m => m.id === mockId);
+            if (!mock) return;
+
+            if (mock.questions.length === 0) {
+                showToast('This mock has 0 questions! Add at least 1 question in Mock Creator first.', 'error');
+                return;
+            }
+
+            const grouped = {
+                VARC: mock.questions.filter(q => q.section === 'VARC'),
+                DILR: mock.questions.filter(q => q.section === 'DILR'),
+                QA: mock.questions.filter(q => q.section === 'QA')
+            };
+
+            const firstActiveSection = SECTIONS.find(s => grouped[s].length > 0) || 'VARC';
+
+            const responses = {};
+            mock.questions.forEach(q => {
+                responses[q.id] = {
+                    answer: null,
+                    status: 'not-visited'
+                };
+            });
+
+            examState = {
+                mockId: mock.id,
+                mockTitle: mock.title,
+                questionsBySection: grouped,
+                currentSection: firstActiveSection,
+                currentIndex: 0,
+                responses: responses,
+                sectionTimers: {
+                    VARC: SECTION_DURATION_SECONDS,
+                    DILR: SECTION_DURATION_SECONDS,
+                    QA: SECTION_DURATION_SECONDS
+                },
+                completedSections: {
+                    VARC: grouped.VARC.length === 0,
+                    DILR: grouped.DILR.length === 0,
+                    QA: grouped.QA.length === 0
+                },
+                timerInterval: null,
+                lastResult: null
+            };
+
+            document.getElementById('exam-header-title').textContent = mock.title;
+            switchAppMode('exam');
+            loadCurrentExamQuestion();
+            startExamTimer();
+        }
+
+        function startExamTimer() {
+            if (examState.timerInterval) clearInterval(examState.timerInterval);
+            updateTimerDisplay();
+
+            examState.timerInterval = setInterval(() => {
+                const sec = examState.currentSection;
+                if (examState.sectionTimers[sec] > 0) {
+                    examState.sectionTimers[sec]--;
+                    updateTimerDisplay();
+                } else {
+                    showToast(`Time up for ${sec}! Moving to next section.`, 'info');
+                    advanceToNextSectionOrFinish();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const secs = examState.sectionTimers[examState.currentSection];
+            const mins = Math.floor(secs / 60);
+            const remSecs = secs % 60;
+            const display = `${String(mins).padStart(2, '0')}:${String(remSecs).padStart(2, '0')}`;
+            const el = document.getElementById('exam-timer-display');
+            el.textContent = display;
+
+            if (secs <= 300) {
+                el.classList.remove('text-amber-400');
+                el.classList.add('text-red-400', 'animate-pulse');
+            } else {
+                el.classList.add('text-amber-400');
+                el.classList.remove('text-red-400', 'animate-pulse');
+            }
+        }
+
+        function getCurrentQuestion() {
+            const list = examState.questionsBySection[examState.currentSection];
+            return list[examState.currentIndex] || null;
+        }
+
+        function loadCurrentExamQuestion() {
+            const q = getCurrentQuestion();
+            if (!q) return;
+
+            const resp = examState.responses[q.id];
+            if (resp.status === 'not-visited') {
+                resp.status = 'not-answered';
+            }
+
+            // Update Section Tabs UI
+            SECTIONS.forEach(sec => {
+                const tab = document.getElementById(`sec-tab-${sec}`);
+                const badge = document.getElementById(`sec-badge-${sec}`);
+                const count = examState.questionsBySection[sec].length;
+                badge.textContent = count;
+
+                if (sec === examState.currentSection) {
+                    tab.className = 'px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5 bg-[#2563eb] text-white border-blue-700 shadow-2xs';
+                } else if (count === 0) {
+                    tab.className = 'px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5 bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed';
+                } else {
+                    tab.className = 'px-3 py-1.5 rounded text-xs font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:bg-gray-100';
+                }
+            });
+
+            document.getElementById('palette-sec-name').textContent = examState.currentSection;
+            document.getElementById('exam-q-number-label').textContent = `Question No. ${examState.currentIndex + 1}`;
+            document.getElementById('exam-q-type-label').textContent = q.type === 'MCQ' ? 'Multiple Choice (MCQ)' : 'Type In The Answer (TITA)';
+            document.getElementById('exam-marking-badge').textContent = q.type === 'MCQ' ? '+3 / -1' : '+3 / 0 (No Negative)';
+
+            // Split-Screen Passage & Chart Image Handling
+            const passagePane = document.getElementById('exam-passage-pane');
+            const passageContent = document.getElementById('exam-passage-content');
+            const passageImgContainer = document.getElementById('exam-passage-img-container');
+            const passageImg = document.getElementById('exam-passage-img');
+            const passageZoomHint = document.getElementById('exam-passage-zoom-hint');
+
+            const hasPassageText = q.passage && q.passage.trim() !== '';
+            const hasPassageImg = q.passageImage && q.passageImage.trim() !== '';
+
+            if (hasPassageText || hasPassageImg) {
+                passagePane.classList.remove('hidden');
+                passageContent.textContent = hasPassageText ? q.passage : '';
+                if (hasPassageImg) {
+                    passageImg.src = q.passageImage;
+                    passageImgContainer.classList.remove('hidden');
+                    passageZoomHint.classList.remove('hidden');
+                } else {
+                    passageImg.src = '';
+                    passageImgContainer.classList.add('hidden');
+                    passageZoomHint.classList.add('hidden');
+                }
+            } else {
+                passagePane.classList.add('hidden');
+                passageContent.textContent = '';
+                passageImg.src = '';
+                passageImgContainer.classList.add('hidden');
+                passageZoomHint.classList.add('hidden');
+            }
+
+            // Question Text & Optional Quant/Question Diagram Image
+            document.getElementById('exam-question-text').textContent = q.text;
+            const qImgContainer = document.getElementById('exam-question-img-container');
+            const qImg = document.getElementById('exam-question-img');
+            if (q.questionImage && q.questionImage.trim() !== '') {
+                qImg.src = q.questionImage;
+                qImgContainer.classList.remove('hidden');
+            } else {
+                qImg.src = '';
+                qImgContainer.classList.add('hidden');
+            }
+
+            // Render MCQ vs TITA Input
+            const mcqBox = document.getElementById('exam-mcq-options');
+            const titaBox = document.getElementById('exam-tita-box');
+
+            if (q.type === 'MCQ') {
+                mcqBox.classList.remove('hidden');
+                titaBox.classList.add('hidden');
+
+                const letters = ['A', 'B', 'C', 'D'];
+                mcqBox.innerHTML = q.options.map((opt, idx) => {
+                    const isChecked = resp.answer === idx;
+                    return `
+                        <label onclick="selectMcqOption(${idx})" class="flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${isChecked ? 'bg-blue-50 border-blue-500 shadow-2xs' : 'bg-white border-gray-200 hover:bg-gray-50'}">
+                            <input type="radio" name="exam-mcq-choice" ${isChecked ? 'checked' : ''} class="mt-1 w-4 h-4 text-blue-600 cursor-pointer">
+                            <span class="font-bold text-xs text-gray-500 mt-0.5">(${letters[idx]})</span>
+                            <span class="text-sm text-gray-900 flex-1">${escapeHTML(opt)}</span>
+                        </label>
+                    `;
+                }).join('');
+            } else {
+                mcqBox.classList.add('hidden');
+                titaBox.classList.remove('hidden');
+                document.getElementById('exam-tita-input').value = resp.answer !== null ? String(resp.answer) : '';
+            }
+
+            // Update Next Section button visibility
+            const nextSec = getNextNonEmptySection();
+            const nextSecBtn = document.getElementById('next-section-btn');
+            if (nextSec) {
+                nextSecBtn.classList.remove('hidden');
+                nextSecBtn.textContent = `Switch / Submit to ${nextSec} →`;
+            } else {
+                nextSecBtn.classList.add('hidden');
+            }
+
+            renderExamPalette();
+        }
+
+        // MCQ Selection
+        function selectMcqOption(optionIndex) {
+            const q = getCurrentQuestion();
+            if (!q) return;
+            examState.responses[q.id].answer = optionIndex;
+            loadCurrentExamQuestion();
+        }
+
+        // TITA Keypad Actions
+        function titaPress(char) {
+            const q = getCurrentQuestion();
+            if (!q || q.type !== 'TITA') return;
+            const input = document.getElementById('exam-tita-input');
+            let current = input.value || '';
+            if (char === '-' && current.length > 0) return;
+            if (char === '.' && current.includes('.')) return;
+            if (current.length >= 12) return;
+
+            current += char;
+            input.value = current;
+            examState.responses[q.id].answer = current;
+        }
+
+        function titaBackspace() {
+            const q = getCurrentQuestion();
+            if (!q || q.type !== 'TITA') return;
+            const input = document.getElementById('exam-tita-input');
+            const updated = (input.value || '').slice(0, -1);
+            input.value = updated;
+            examState.responses[q.id].answer = updated.length > 0 ? updated : null;
+        }
+
+        function titaClear() {
+            const q = getCurrentQuestion();
+            if (!q || q.type !== 'TITA') return;
+            document.getElementById('exam-tita-input').value = '';
+            examState.responses[q.id].answer = null;
+        }
+
+        // Bottom Action Buttons
+        function hasValidResponse(q) {
+            const ans = examState.responses[q.id].answer;
+            if (q.type === 'MCQ') return ans !== null && ans !== undefined;
+            return ans !== null && String(ans).trim() !== '';
+        }
+
+        function handleSaveAndNext() {
+            const q = getCurrentQuestion();
+            if (!q) return;
+            examState.responses[q.id].status = hasValidResponse(q) ? 'answered' : 'not-answered';
+            moveToNextQuestion();
+        }
+
+        function handleMarkForReviewAndNext() {
+            const q = getCurrentQuestion();
+            if (!q) return;
+            examState.responses[q.id].status = hasValidResponse(q) ? 'answered-marked' : 'marked';
+            moveToNextQuestion();
+        }
+
+        function handleClearResponse() {
+            const q = getCurrentQuestion();
+            if (!q) return;
+            examState.responses[q.id].answer = null;
+            examState.responses[q.id].status = 'not-answered';
+            loadCurrentExamQuestion();
+        }
+
+        function moveToNextQuestion() {
+            const secList = examState.questionsBySection[examState.currentSection];
+            if (examState.currentIndex < secList.length - 1) {
+                examState.currentIndex++;
+            } else {
+                examState.currentIndex = 0;
+            }
+            loadCurrentExamQuestion();
+        }
+
+        function jumpToPaletteQuestion(index) {
+            examState.currentIndex = index;
+            loadCurrentExamQuestion();
+        }
+
+        function renderExamPalette() {
+            const secList = examState.questionsBySection[examState.currentSection];
+            const grid = document.getElementById('exam-palette-grid');
+
+            let counts = {
+                'answered': 0,
+                'not-answered': 0,
+                'not-visited': 0,
+                'marked': 0,
+                'answered-marked': 0
+            };
+
+            grid.innerHTML = secList.map((q, idx) => {
+                const status = examState.responses[q.id].status;
+                if (counts[status] !== undefined) counts[status]++;
+
+                const activeClass = idx === examState.currentIndex ? 'palette-active' : '';
+                return `
+                    <button onclick="jumpToPaletteQuestion(${idx})" class="palette-btn status-${status} ${activeClass}">
+                        ${idx + 1}
+                    </button>
+                `;
+            }).join('');
+
+            document.getElementById('legend-answered').textContent = counts['answered'];
+            document.getElementById('legend-not-answered').textContent = counts['not-answered'];
+            document.getElementById('legend-not-visited').textContent = counts['not-visited'];
+            document.getElementById('legend-marked').textContent = counts['marked'];
+            document.getElementById('legend-ans-marked').textContent = counts['answered-marked'];
+        }
+
+        function attemptSectionSwitch(targetSec) {
+            if (targetSec === examState.currentSection) return;
+            if (examState.questionsBySection[targetSec].length === 0) {
+                showToast(`No questions added in ${targetSec} section.`, 'info');
+                return;
+            }
+            examState.currentSection = targetSec;
+            examState.currentIndex = 0;
+            loadCurrentExamQuestion();
+            updateTimerDisplay();
+        }
+
+        function getNextNonEmptySection() {
+            const currIdx = SECTIONS.indexOf(examState.currentSection);
+            for (let i = currIdx + 1; i < SECTIONS.length; i++) {
+                if (examState.questionsBySection[SECTIONS[i]].length > 0) {
+                    return SECTIONS[i];
+                }
+            }
+            return null;
+        }
+
+        function handleNextSectionManual() {
+            const nextSec = getNextNonEmptySection();
+            if (!nextSec) {
+                confirmSubmitExam();
+                return;
+            }
+            customConfirm(
+                `Switch to ${nextSec}?`,
+                `Are you sure you want to move from ${examState.currentSection} to ${nextSec}?`,
+                () => {
+                    examState.currentSection = nextSec;
+                    examState.currentIndex = 0;
+                    loadCurrentExamQuestion();
+                    updateTimerDisplay();
+                }
+            );
+        }
+
+        function advanceToNextSectionOrFinish() {
+            const nextSec = getNextNonEmptySection();
+            if (nextSec) {
+                examState.currentSection = nextSec;
+                examState.currentIndex = 0;
+                loadCurrentExamQuestion();
+                updateTimerDisplay();
+            } else {
+                submitAndEvaluateExam();
+            }
+        }
+
+        // Modals inside Exam Mode
+        function openQuestionPaperModal() {
+            const modal = document.getElementById('exam-info-modal');
+            document.getElementById('exam-info-title').textContent = `Full Question Paper — ${examState.currentSection}`;
+            const secQuestions = examState.questionsBySection[examState.currentSection];
+
+            document.getElementById('exam-info-body').innerHTML = secQuestions.map((q, i) => `
+                <div class="p-4 rounded-xl border border-gray-200 bg-gray-50">
+                    <div class="font-bold text-blue-800 mb-1">Q${i + 1}. (${q.type})</div>
+                    ${q.passage ? `<div class="text-xs text-gray-600 bg-white p-3 rounded border mb-2 whitespace-pre-line">${escapeHTML(q.passage)}</div>` : ''}
+                    ${q.passageImage ? `<img src="${q.passageImage}" alt="Set Chart" class="max-h-48 rounded border bg-white p-1 mb-2">` : ''}
+                    <div class="font-medium text-gray-900 whitespace-pre-line">${escapeHTML(q.text)}</div>
+                    ${q.questionImage ? `<img src="${q.questionImage}" alt="Question Figure" class="max-h-48 rounded border bg-white p-1 mt-2">` : ''}
+                </div>
+            `).join('');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openInstructionsModal() {
+            const modal = document.getElementById('exam-info-modal');
+            document.getElementById('exam-info-title').textContent = 'CAT Mock Exam Instructions';
+            document.getElementById('exam-info-body').innerHTML = `
+                <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                    <li><strong>Sectional Duration:</strong> 40 minutes per section (VARC, DILR, QA).</li>
+                    <li><strong>MCQ Marking Scheme:</strong> +3 marks for every correct answer, -1 mark for every incorrect answer.</li>
+                    <li><strong>TITA Marking Scheme:</strong> +3 marks for every correct answer, 0 marks (no negative marking) for incorrect answers.</li>
+                    <li><strong>Evaluation Rule:</strong> Questions marked as <em>"Answered"</em> or <em>"Answered & Marked for Review"</em> are automatically evaluated upon submission.</li>
+                </ul>
+            `;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeExamInfoModal() {
+            const modal = document.getElementById('exam-info-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmSubmitExam() {
+            customConfirm(
+                'Submit Mock Test?',
+                'Are you sure you want to finish the test and view your CAT Scorecard & Solutions?',
+                () => {
+                    submitAndEvaluateExam();
+                }
+            );
+        }
+
+        // -------------------------------------------------------------------
+        // 6. AUTOMATED EVALUATION & SCORECARD ANALYTICS
+        // -------------------------------------------------------------------
+        function submitAndEvaluateExam() {
+            if (examState.timerInterval) {
+                clearInterval(examState.timerInterval);
+                examState.timerInterval = null;
+            }
+
+            const mock = appData.mocks.find(m => m.id === examState.mockId);
+            if (!mock) return;
+
+            let totalScore = 0;
+            let maxScore = mock.questions.length * 3;
+            let totalAttempted = 0;
+            let totalCorrect = 0;
+            let totalWrong = 0;
+
+            const sectionStats = {
+                VARC: { total: 0, attempted: 0, correct: 0, wrong: 0, score: 0 },
+                DILR: { total: 0, attempted: 0, correct: 0, wrong: 0, score: 0 },
+                QA: { total: 0, attempted: 0, correct: 0, wrong: 0, score: 0 }
+            };
+
+            const evaluatedQuestions = mock.questions.map(q => {
+                const resp = examState.responses[q.id] || { answer: null, status: 'not-visited' };
+                const sec = sectionStats[q.section] ? q.section : 'QA';
+                sectionStats[sec].total++;
+
+                let outcome = 'UNATTEMPTED';
+                let marksAwarded = 0;
+
+                const isAttempted = q.type === 'MCQ'
+                    ? (resp.answer !== null && resp.answer !== undefined)
+                    : (resp.answer !== null && String(resp.answer).trim() !== '');
+
+                if (isAttempted) {
+                    totalAttempted++;
+                    sectionStats[sec].attempted++;
+
+                    let isCorrect = false;
+                    if (q.type === 'MCQ') {
+                        isCorrect = Number(resp.answer) === Number(q.correctAnswer);
+                    } else {
+                        isCorrect = String(resp.answer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
+                    }
+
+                    if (isCorrect) {
+                        outcome = 'CORRECT';
+                        marksAwarded = 3;
+                        totalCorrect++;
+                        sectionStats[sec].correct++;
+                    } else {
+                        outcome = 'WRONG';
+                        marksAwarded = q.type === 'MCQ' ? -1 : 0;
+                        totalWrong++;
+                        sectionStats[sec].wrong++;
+                    }
+                }
+
+                totalScore += marksAwarded;
+                sectionStats[sec].score += marksAwarded;
+
+                return {
+                    ...q,
+                    userAnswer: resp.answer,
+                    outcome,
+                    marksAwarded
+                };
+            });
+
+            examState.lastResult = {
+                mockId: mock.id,
+                mockTitle: mock.title,
+                totalScore,
+                maxScore,
+                totalQuestions: mock.questions.length,
+                totalAttempted,
+                totalCorrect,
+                totalWrong,
+                sectionStats,
+                evaluatedQuestions
+            };
+
+            renderScorecardView();
+            switchAppMode('scorecard');
+        }
+
+        function renderScorecardView() {
+            const res = examState.lastResult;
+            if (!res) return;
+
+            document.getElementById('scorecard-mock-title').textContent = res.mockTitle;
+            document.getElementById('sc-total-score').textContent = res.totalScore;
+            document.getElementById('sc-max-score').textContent = `/ ${res.maxScore}`;
+
+            const acc = res.totalAttempted > 0 ? Math.round((res.totalCorrect / res.totalAttempted) * 100) : 0;
+            document.getElementById('sc-accuracy').textContent = `${acc}%`;
+            document.getElementById('sc-attempted').textContent = res.totalAttempted;
+            document.getElementById('sc-total-q').textContent = `/ ${res.totalQuestions} Qs`;
+            document.getElementById('sc-correct').textContent = `${res.totalCorrect} ✓`;
+            document.getElementById('sc-wrong').textContent = `${res.totalWrong} ✗`;
+
+            const tbody = document.getElementById('sc-section-table-body');
+            tbody.innerHTML = SECTIONS.map(sec => {
+                const st = res.sectionStats[sec];
+                const secAcc = st.attempted > 0 ? Math.round((st.correct / st.attempted) * 100) + '%' : '-';
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-3.5 font-bold text-gray-900">${sec}</td>
+                        <td class="px-6 py-3.5 text-gray-600">${st.total}</td>
+                        <td class="px-6 py-3.5 text-gray-800 font-medium">${st.attempted}</td>
+                        <td class="px-6 py-3.5 text-emerald-600 font-semibold">${st.correct}</td>
+                        <td class="px-6 py-3.5 text-red-500 font-semibold">${st.wrong}</td>
+                        <td class="px-6 py-3.5 text-gray-700">${secAcc}</td>
+                        <td class="px-6 py-3.5 font-extrabold text-blue-700">${st.score}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderReviewList('ALL');
+        }
+
+        function renderReviewList(filter) {
+            const res = examState.lastResult;
+            if (!res) return;
+
+            ['ALL', 'CORRECT', 'WRONG', 'UNATTEMPTED'].forEach(f => {
+                const btn = document.getElementById(`rev-filter-${f}`);
+                if (f === filter) {
+                    btn.className = 'px-3 py-1.5 rounded-lg font-semibold bg-slate-800 text-white';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200';
+                }
+            });
+
+            const items = filter === 'ALL'
+                ? res.evaluatedQuestions
+                : res.evaluatedQuestions.filter(q => q.outcome === filter);
+
+            const container = document.getElementById('sc-review-list');
+            if (items.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-sm text-gray-400">No questions match this filter.</div>`;
+                return;
+            }
+
+            const letters = ['A', 'B', 'C', 'D'];
+            container.innerHTML = items.map((q, idx) => {
+                const badgeStyles = q.outcome === 'CORRECT'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    : q.outcome === 'WRONG'
+                    ? 'bg-red-100 text-red-800 border-red-200'
+                    : 'bg-gray-100 text-gray-700 border-gray-200';
+
+                const badgeText = q.outcome === 'CORRECT'
+                    ? `Correct (+${q.marksAwarded})`
+                    : q.outcome === 'WRONG'
+                    ? `Incorrect (${q.marksAwarded})`
+                    : 'Unattempted (0)';
+
+                let optionsOrAnswerHTML = '';
+                if (q.type === 'MCQ') {
+                    optionsOrAnswerHTML = `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                            ${q.options.map((opt, optIdx) => {
+                                const isRight = Number(q.correctAnswer) === optIdx;
+                                const isUserPick = q.userAnswer !== null && Number(q.userAnswer) === optIdx;
+                                let boxClass = 'bg-white border-gray-200 text-gray-700';
+                                let tag = '';
+
+                                if (isRight) {
+                                    boxClass = 'bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold';
+                                    tag = '<span class="ml-auto text-[11px] font-bold text-emerald-700">✓ Correct</span>';
+                                } else if (isUserPick && !isRight) {
+                                    boxClass = 'bg-red-50 border-red-400 text-red-900';
+                                    tag = '<span class="ml-auto text-[11px] font-bold text-red-600">✗ Your Pick</span>';
+                                }
+
+                                return `
+                                    <div class="p-3 rounded-xl border text-xs sm:text-sm flex items-center gap-2 ${boxClass}">
+                                        <span class="font-bold">(${letters[optIdx]})</span>
+                                        <span>${escapeHTML(opt)}</span>
+                                        ${tag}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else {
+                    const userDisplay = (q.userAnswer !== null && String(q.userAnswer).trim() !== '')
+                        ? escapeHTML(q.userAnswer)
+                        : '<span class="italic text-gray-400">Not Attempted</span>';
+                    optionsOrAnswerHTML = `
+                        <div class="mt-3 flex flex-wrap gap-4 text-xs sm:text-sm">
+                            <div class="px-3.5 py-2 rounded-xl bg-white border border-gray-200">
+                                <span class="text-gray-500">Your TITA Answer:</span> <strong class="ml-1">${userDisplay}</strong>
+                            </div>
+                            <div class="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900">
+                                <span>Correct TITA Answer:</span> <strong class="ml-1">${escapeHTML(q.correctAnswer)}</strong>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="p-5 rounded-2xl border border-gray-200 bg-gray-50/40">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-gray-900">Q${idx + 1}.</span>
+                                <span class="px-2 py-0.5 text-[11px] font-bold rounded bg-blue-100 text-blue-800">${q.section}</span>
+                                <span class="px-2 py-0.5 text-[11px] font-bold rounded bg-slate-200 text-slate-700">${q.type}</span>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeStyles}">${badgeText}</span>
+                        </div>
+
+                        ${(q.passage || q.passageImage) ? `
+                            <details class="mb-3 bg-white border border-gray-200 rounded-xl p-3" ${q.passageImage ? 'open' : ''}>
+                                <summary class="text-xs font-bold text-blue-700 cursor-pointer">View Passage / DILR Chart Set</summary>
+                                ${q.passage ? `<p class="mt-2 text-xs sm:text-sm text-gray-700 whitespace-pre-line leading-relaxed">${escapeHTML(q.passage)}</p>` : ''}
+                                ${q.passageImage ? `<img src="${q.passageImage}" alt="DILR Chart" onclick="openImageZoomModal(this.src)" class="mt-2 max-h-64 rounded-lg border border-gray-300 bg-white p-1 cursor-zoom-in">` : ''}
+                            </details>
+                        ` : ''}
+
+                        <p class="text-sm sm:text-base font-medium text-gray-900 whitespace-pre-line">${escapeHTML(q.text)}</p>
+
+                        ${q.questionImage ? `
+                            <div class="mt-3">
+                                <img src="${q.questionImage}" alt="Question Diagram" onclick="openImageZoomModal(this.src)" class="max-h-64 rounded-xl border border-gray-300 bg-white p-1.5 cursor-zoom-in">
+                            </div>
+                        ` : ''}
+
+                        ${optionsOrAnswerHTML}
+
+                        ${q.explanation ? `
+                            <div class="mt-3 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs sm:text-sm text-slate-800">
+                                <strong class="text-blue-900 block mb-1">💡 Solution & Explanation:</strong>
+                                <p class="whitespace-pre-line leading-relaxed">${escapeHTML(q.explanation)}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function retakeCurrentMock() {
+            if (examState.lastResult && examState.lastResult.mockId) {
+                startMockExam(examState.lastResult.mockId);
+            }
+        }
+
+        // Expose functions to global window scope for inline HTML event handlers
+        Object.assign(window, {
+            switchAppMode,
+            openMockInAdmin,
+            openNewMockInput,
+            closeNewMockInput,
+            createNewMock,
+            selectAdminMock,
+            deleteSelectedMock,
+            toggleGDriveHelp,
+            connectGoogleDrive,
+            disconnectGoogleDrive,
+            syncAllToGoogleDrive,
+            loadFromGoogleDrive,
+            toggleQuestionTypeFields,
+            reusePreviousPassage,
+            handleImageFileSelect,
+            handleDragOver,
+            handleDragLeave,
+            handleImageDrop,
+            handleImagePaste,
+            toggleUrlInput,
+            applyImageUrl,
+            removeImage,
+            openImageZoomModal,
+            closeImageZoomModal,
+            saveQuestionFromForm,
+            resetQuestionForm,
+            editAdminQuestion,
+            deleteAdminQuestion,
+            filterAdminQuestions,
+            launchSelectedMockFromAdmin,
+            exportMocksJSON,
+            importMocksJSON,
+            resetSampleData,
+            startMockExam,
+            attemptSectionSwitch,
+            selectMcqOption,
+            titaPress,
+            titaBackspace,
+            titaClear,
+            handleSaveAndNext,
+            handleMarkForReviewAndNext,
+            handleClearResponse,
+            jumpToPaletteQuestion,
+            handleNextSectionManual,
+            openQuestionPaperModal,
+            openInstructionsModal,
+            closeExamInfoModal,
+            confirmSubmitExam,
+            renderReviewList,
+            retakeCurrentMock
+        });
+
+        // -------------------------------------------------------------------
+        // 7. BOOTSTRAP APPLICATION
+        // -------------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            switchAppMode('student');
+            initCloudStorage().then(() => {
+                loadGDriveSettingsFromCloud();
+            });
+        });
+    </script>
+</body>
+</html>
