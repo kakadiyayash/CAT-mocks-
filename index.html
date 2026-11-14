@@ -14,12 +14,9 @@
             color: #1f2937;
             user-select: none;
         }
-        /* Allow text selection in inputs, textareas, and review/question areas */
         input, textarea, select, .selectable-text {
             user-select: text;
         }
-
-        /* Authentic TCS iON Question Palette Status Shapes & Colors */
         .palette-btn {
             width: 38px;
             height: 36px;
@@ -35,34 +32,29 @@
         .palette-btn:hover {
             transform: scale(1.06);
         }
-        /* 1. Not Visited: Grey rounded box */
         .status-not-visited {
             background: #e5e7eb;
             color: #374151;
             border: 1px solid #9ca3af;
             border-radius: 4px;
         }
-        /* 2. Not Answered: Red/Orange tapered polygon */
         .status-not-answered {
             background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
             color: #ffffff;
             clip-path: polygon(0% 0%, 100% 0%, 100% 72%, 50% 100%, 0% 72%);
             border-radius: 3px 3px 0 0;
         }
-        /* 3. Answered: Green tapered upward polygon */
         .status-answered {
             background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
             color: #ffffff;
             clip-path: polygon(50% 0%, 100% 28%, 100% 100%, 0% 100%, 0% 28%);
             border-radius: 0 0 3px 3px;
         }
-        /* 4. Marked for Review: Purple circle */
         .status-marked {
             background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
             color: #ffffff;
             border-radius: 50%;
         }
-        /* 5. Answered & Marked for Review: Purple circle with small green badge */
         .status-answered-marked {
             background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
             color: #ffffff;
@@ -84,14 +76,10 @@
             justify-content: center;
             border: 1.5px solid white;
         }
-
-        /* Active question ring */
         .palette-active {
             outline: 2.5px solid #2563eb;
             outline-offset: 2px;
         }
-
-        /* Custom scrollbar for split panes */
         ::-webkit-scrollbar {
             width: 7px;
             height: 7px;
@@ -110,10 +98,10 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Toast Notification Banner (Replaces alert) -->
+    <!-- Toast Notification Banner -->
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Custom Confirmation Modal (Replaces confirm) -->
+    <!-- Custom Confirmation Modal -->
     <div id="confirm-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200">
             <h3 id="confirm-title" class="text-lg font-bold text-gray-900 mb-2">Confirm Action</h3>
@@ -139,7 +127,7 @@
         </div>
     </div>
 
-    <!-- Image Zoom Lightbox Modal (For inspecting DI Charts & Quant Geometry Figures) -->
+    <!-- Image Zoom Lightbox Modal -->
     <div id="image-zoom-modal" onclick="closeImageZoomModal()" class="fixed inset-0 bg-black/85 backdrop-blur-xs z-50 hidden items-center justify-center p-4 cursor-zoom-out">
         <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
             <button onclick="closeImageZoomModal()" class="self-end mb-2 px-3 py-1 bg-white/15 hover:bg-white/25 text-white rounded-lg text-xs font-semibold transition">
@@ -150,7 +138,7 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- TOP GLOBAL NAVIGATION (Hidden during active Exam Mode for realism)    -->
+    <!-- TOP GLOBAL NAVIGATION                                                 -->
     <!-- ===================================================================== -->
     <header id="global-header" class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -164,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- Mode Switcher Pills -->
             <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
                 <button id="nav-student-btn" onclick="switchAppMode('student')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 bg-blue-600 text-white shadow">
                     <span>🎓</span> Student Portal
@@ -177,7 +164,7 @@
     </header>
 
     <!-- ===================================================================== -->
-    <!-- VIEW 1: STUDENT LOBBY (Select Mock & View Past Attempts)              -->
+    <!-- VIEW 1: STUDENT LOBBY                                                 -->
     <!-- ===================================================================== -->
     <main id="view-student-lobby" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-2xl p-6 sm:p-8 text-white shadow-lg mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -198,9 +185,7 @@
             <span id="lobby-mock-count" class="text-xs font-medium text-gray-500 bg-gray-200 px-2.5 py-1 rounded-full">0 Mocks</span>
         </div>
 
-        <div id="student-mock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Mock cards injected dynamically -->
-        </div>
+        <div id="student-mock-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </main>
 
     <!-- ===================================================================== -->
@@ -208,8 +193,8 @@
     <!-- ===================================================================== -->
     <main id="view-admin" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            <!-- Left Column: Mock List & JSON Backup -->
+
+            <!-- Left Column: Mock List & Google Drive Sync -->
             <div class="lg:col-span-4 space-y-6">
                 <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5">
                     <div class="flex items-center justify-between mb-4">
@@ -229,9 +214,7 @@
                         </div>
                     </div>
 
-                    <div id="admin-mock-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
-                        <!-- Admin mock selector cards injected here -->
-                    </div>
+                    <div id="admin-mock-list" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
                 </div>
 
                 <!-- Personal Google Drive Sync Card -->
@@ -254,7 +237,7 @@
                             <button type="button" onclick="toggleGDriveHelp()" class="text-[11px] text-blue-600 hover:underline font-medium">How to get free ID?</button>
                         </div>
                         <input type="text" id="gdrive-client-id-input" placeholder="123456789-xxxx.apps.googleusercontent.com" class="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        
+
                         <div id="gdrive-help-box" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-[11px] text-blue-950 space-y-1">
                             <p class="font-bold">1-Minute Setup (Free):</p>
                             <ol class="list-decimal pl-4 space-y-1">
@@ -279,7 +262,6 @@
                             </div>
                             <button type="button" onclick="disconnectGoogleDrive()" class="text-[11px] font-semibold text-red-600 hover:underline shrink-0">Disconnect</button>
                         </div>
-
                         <div class="grid grid-cols-2 gap-2">
                             <button type="button" onclick="syncAllToGoogleDrive(false)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1">
                                 <span>☁️</span> Save Now
@@ -309,17 +291,17 @@
                     </button>
                     <div id="cloud-sync-status" class="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
                         <span class="flex items-center gap-1.5">
-                            <span id="cloud-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                            <span id="cloud-status-text">Connecting to Cloud...</span>
+                            <span id="cloud-status-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span id="cloud-status-text">Saved in Browser Storage</span>
                         </span>
-                        <span id="cloud-user-badge" class="font-mono text-[10px] text-gray-400 truncate max-w-[110px]" title="Cloud Workspace ID"></span>
+                        <span id="cloud-user-badge" class="font-mono text-[10px] text-gray-400">Local + Drive Ready</span>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Quick Question & Answer Builder + Question Bank -->
             <div class="lg:col-span-8 space-y-6">
-                
+
                 <!-- Selected Mock Header -->
                 <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 flex flex-wrap items-center justify-between gap-4">
                     <div>
@@ -470,7 +452,6 @@
                                 <label class="text-xs font-bold text-gray-800 uppercase">5. Enter Options & Select Correct Answer *</label>
                                 <span class="text-[11px] font-semibold text-emerald-700">Click circle to mark correct option</span>
                             </div>
-
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200">
                                     <input type="radio" name="mcq-correct" value="0" checked class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="Mark Option A as Correct">
@@ -530,9 +511,7 @@
                         </div>
                     </div>
 
-                    <div id="admin-questions-list" class="space-y-3">
-                        <!-- Question cards injected dynamically -->
-                    </div>
+                    <div id="admin-questions-list" class="space-y-3"></div>
                 </div>
             </div>
         </div>
@@ -542,8 +521,7 @@
     <!-- VIEW 3: AUTHENTIC TCS iON / CAT EXAM ENGINE                           -->
     <!-- ===================================================================== -->
     <section id="view-exam-engine" class="hidden fixed inset-0 bg-[#f0f2f5] z-40 flex flex-col">
-        
-        <!-- Top Dark Exam Bar -->
+
         <div class="bg-[#2b303a] text-white h-12 px-4 flex items-center justify-between shrink-0 border-b border-slate-700">
             <div class="flex items-center gap-3 truncate">
                 <span class="px-2 py-0.5 bg-blue-600 rounded text-xs font-bold tracking-wide">CAT SIM</span>
@@ -562,7 +540,6 @@
             </div>
         </div>
 
-        <!-- Section Tabs & Live Sectional Countdown Timer -->
         <div class="bg-white border-b border-gray-300 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-2xs">
             <div class="flex items-center gap-1.5">
                 <span class="text-xs font-semibold text-gray-500 mr-1 hidden md:inline">Sections:</span>
@@ -585,13 +562,10 @@
             </div>
         </div>
 
-        <!-- Main Exam Split Body (Left: Question Area | Right: Candidate & Palette) -->
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            
-            <!-- Left Content Area -->
+
             <div class="flex-1 flex flex-col bg-white border-r border-gray-300 overflow-hidden">
-                
-                <!-- Question Sub-header -->
+
                 <div class="bg-[#e8eef5] px-4 py-2 border-b border-gray-300 flex items-center justify-between text-xs shrink-0">
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-blue-900 text-sm" id="exam-q-number-label">Question No. 1</span>
@@ -602,10 +576,8 @@
                     </div>
                 </div>
 
-                <!-- Scrollable Passage + Question Area -->
                 <div id="exam-question-workspace" class="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden selectable-text">
-                    
-                    <!-- Optional Split Passage / DILR Set & Chart Image Pane -->
+
                     <div id="exam-passage-pane" class="hidden md:w-1/2 p-5 border-b md:border-b-0 md:border-r border-gray-300 overflow-y-auto bg-[#fafafa]">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Passage / Caselet & Data</span>
@@ -617,25 +589,20 @@
                         </div>
                     </div>
 
-                    <!-- Question Stem, Optional Diagram & Answer Input Pane -->
                     <div id="exam-stem-pane" class="flex-1 p-5 sm:p-6 overflow-y-auto space-y-5">
                         <div id="exam-question-text" class="text-sm sm:text-base font-medium text-gray-900 leading-relaxed whitespace-pre-line"></div>
 
-                        <!-- Optional Quant / Question Diagram -->
                         <div id="exam-question-img-container" class="hidden">
                             <img id="exam-question-img" src="" alt="Question Diagram" onclick="openImageZoomModal(this.src)" class="max-w-full max-h-72 rounded-xl border border-gray-300 bg-white p-1.5 shadow-2xs cursor-zoom-in hover:opacity-95 transition">
                             <span class="block text-[11px] text-gray-400 mt-1">Click figure to enlarge</span>
                         </div>
 
-                        <!-- MCQ Options Container -->
                         <div id="exam-mcq-options" class="space-y-3 pt-2"></div>
 
-                        <!-- TITA On-Screen Numeric Keypad Container -->
                         <div id="exam-tita-box" class="hidden pt-2 max-w-xs">
                             <label class="block text-xs font-bold text-gray-600 uppercase mb-1.5">Type Your Answer Below:</label>
                             <input type="text" id="exam-tita-input" readonly placeholder="Use keypad below" class="w-full px-3.5 py-2.5 text-lg font-mono font-bold bg-gray-50 border-2 border-blue-500 rounded-lg mb-3 text-gray-900">
-                            
-                            <!-- Authentic CAT Virtual Keypad -->
+
                             <div class="bg-slate-100 p-3 rounded-xl border border-slate-300 grid grid-cols-3 gap-2 select-none">
                                 <button type="button" onclick="titaBackspace()" class="col-span-3 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-xs text-gray-800 shadow-2xs">Backspace</button>
                                 <button type="button" onclick="titaPress('7')" class="py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded font-bold text-sm shadow-2xs">7</button>
@@ -656,7 +623,6 @@
                     </div>
                 </div>
 
-                <!-- Bottom TCS iON Action Bar -->
                 <div class="bg-[#f8fafc] border-t border-gray-300 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
                     <div class="flex flex-wrap items-center gap-2">
                         <button onclick="handleMarkForReviewAndNext()" class="px-3.5 py-2 bg-white hover:bg-purple-50 text-purple-800 border border-purple-300 rounded font-semibold text-xs sm:text-sm transition">
@@ -666,17 +632,14 @@
                             Clear Response
                         </button>
                     </div>
-
                     <button onclick="handleSaveAndNext()" class="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded font-semibold text-xs sm:text-sm shadow-xs transition">
                         Save & Next
                     </button>
                 </div>
             </div>
 
-            <!-- Right Sidebar: Candidate Profile, Legend & Question Palette -->
             <aside class="w-full lg:w-80 bg-[#e2e8f0] flex flex-col justify-between max-h-[42vh] lg:max-h-none overflow-y-auto">
                 <div>
-                    <!-- Candidate Info Card -->
                     <div class="bg-white p-3 border-b border-gray-300 flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-sm">
                             ASP
@@ -687,7 +650,6 @@
                         </div>
                     </div>
 
-                    <!-- Status Legend -->
                     <div class="bg-white p-3 border-b border-gray-300 grid grid-cols-2 gap-y-2 gap-x-1 text-[11px] text-gray-700">
                         <div class="flex items-center gap-1.5">
                             <span id="legend-answered" class="palette-btn status-answered !w-6 !h-6 !text-[10px]">0</span>
@@ -711,18 +673,13 @@
                         </div>
                     </div>
 
-                    <!-- Palette Section Header -->
                     <div class="bg-[#3b82f6] text-white px-3 py-1.5 text-xs font-bold">
                         Section: <span id="palette-sec-name">VARC</span> — Choose a Question
                     </div>
 
-                    <!-- Question Buttons Grid -->
-                    <div id="exam-palette-grid" class="p-3 flex flex-wrap gap-2.5 bg-[#eff6ff] min-h-[110px]">
-                        <!-- Palette buttons injected dynamically -->
-                    </div>
+                    <div id="exam-palette-grid" class="p-3 flex flex-wrap gap-2.5 bg-[#eff6ff] min-h-[110px]"></div>
                 </div>
 
-                <!-- Submit Section / Submit Mock Footer -->
                 <div class="p-3 bg-slate-200 border-t border-gray-300 space-y-2">
                     <button id="next-section-btn" onclick="handleNextSectionManual()" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded shadow-xs transition">
                         Submit Section & Go Next →
@@ -754,7 +711,6 @@
             </div>
         </div>
 
-        <!-- Top KPI Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
                 <div class="text-xs font-semibold text-gray-500 uppercase">Total CAT Score</div>
@@ -786,7 +742,6 @@
             </div>
         </div>
 
-        <!-- Section-wise Breakdown Table -->
         <div class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden mb-8">
             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/70">
                 <h3 class="font-bold text-gray-900 text-base">Section-Wise Performance</h3>
@@ -804,14 +759,11 @@
                             <th class="px-6 py-3 font-bold text-gray-900">Net Score</th>
                         </tr>
                     </thead>
-                    <tbody id="sc-section-table-body" class="divide-y divide-gray-100">
-                        <!-- Rows injected dynamically -->
-                    </tbody>
+                    <tbody id="sc-section-table-body" class="divide-y divide-gray-100"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Detailed Question-by-Question Solution Review -->
         <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-6">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <h3 class="font-bold text-gray-900 text-lg">Detailed Question & Solution Review</h3>
@@ -822,34 +774,21 @@
                     <button onclick="renderReviewList('UNATTEMPTED')" id="rev-filter-UNATTEMPTED" class="px-3 py-1.5 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">Unattempted</button>
                 </div>
             </div>
-
-            <div id="sc-review-list" class="space-y-6 selectable-text">
-                <!-- Review items injected dynamically -->
-            </div>
+            <div id="sc-review-list" class="space-y-6 selectable-text"></div>
         </div>
     </main>
 
     <!-- ===================================================================== -->
     <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
     <!-- ===================================================================== -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // -------------------------------------------------------------------
-        // 1. CLOUD DATABASE & STATE MANAGEMENT
+        // 1. LOCAL STORAGE & GOOGLE DRIVE PERSISTENCE
         // -------------------------------------------------------------------
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        let unsubscribeMocks = null;
-
+        const LOCAL_MOCKS_KEY = 'cat_mock_studio_mocks_v1';
+        const LOCAL_GDRIVE_CLIENT_KEY = 'cat_mock_studio_gdrive_client_v1';
         const SECTIONS = ['VARC', 'DILR', 'QA'];
-        const SECTION_DURATION_SECONDS = 40 * 60; // 40 minutes per section
+        const SECTION_DURATION_SECONDS = 40 * 60;
 
         let appData = {
             mocks: [],
@@ -857,14 +796,11 @@
         };
 
         let adminSectionFilter = 'ALL';
-
-        // Temporary image state while creating/editing a question in Admin Mode
         let builderImages = {
             passage: '',
             question: ''
         };
 
-        // Active Exam Session State
         let examState = {
             mockId: null,
             mockTitle: '',
@@ -878,29 +814,14 @@
             lastResult: null
         };
 
-        function updateCloudStatusUI(state, detailText = '') {
+        function updateStorageStatusUI(text, isSynced = true) {
             const dot = document.getElementById('cloud-status-dot');
-            const text = document.getElementById('cloud-status-text');
-            const badge = document.getElementById('cloud-user-badge');
-            if (!dot || !text) return;
-
-            if (state === 'connected') {
-                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-                text.textContent = detailText || 'Cloud Sync Active';
-                if (badge && currentUser) {
-                    badge.textContent = currentUser.uid;
-                    badge.title = `Workspace ID: ${currentUser.uid}`;
-                }
-            } else if (state === 'syncing') {
-                dot.className = 'w-2 h-2 rounded-full bg-blue-500 animate-ping';
-                text.textContent = detailText || 'Saving to Cloud...';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-red-500';
-                text.textContent = detailText || 'Offline / Sync Error';
-            }
+            const statusText = document.getElementById('cloud-status-text');
+            if (!dot || !statusText) return;
+            dot.className = isSynced ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-blue-500 animate-ping';
+            statusText.textContent = text;
         }
 
-        // Pre-loaded Sample Mock so user can test immediately
         function getDefaultSampleData() {
             const sampleChartSvg = `data:image/svg+xml;utf8,` + encodeURIComponent(`
                 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="250" viewBox="0 0 520 250">
@@ -972,12 +893,7 @@
                             passageImage: sampleChartSvg,
                             text: 'In which quarter was the Profit as a percentage of Operating Cost the highest?',
                             questionImage: '',
-                            options: [
-                                'Q1',
-                                'Q2',
-                                'Q3',
-                                'Q4'
-                            ],
+                            options: ['Q1', 'Q2', 'Q3', 'Q4'],
                             correctAnswer: 1,
                             explanation: 'Q1: 30/50 = 60%; Q2: 40/60 = 66.67%; Q3: 45/75 = 60%; Q4: 50/90 = 55.56%. Hence Q2 is the highest.'
                         },
@@ -1001,12 +917,7 @@
                             passageImage: '',
                             text: 'If the sum of the first n terms of an arithmetic progression is 3n² + 5n, what is the 10th term of the progression?',
                             questionImage: '',
-                            options: [
-                                '58',
-                                '62',
-                                '65',
-                                '68'
-                            ],
+                            options: ['58', '62', '65', '68'],
                             correctAnswer: 1,
                             explanation: 'T_10 = S_10 - S_9 = (3(100) + 50) - (3(81) + 45) = 350 - 288 = 62.'
                         },
@@ -1027,142 +938,89 @@
             ];
         }
 
-        async function initCloudStorage() {
-            if (!firebaseConfig) {
+        function initAppStorage() {
+            try {
+                const raw = localStorage.getItem(LOCAL_MOCKS_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        appData.mocks = parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not read local mocks:', e);
+            }
+
+            if (appData.mocks.length === 0) {
                 appData.mocks = getDefaultSampleData();
-                appData.selectedAdminMockId = appData.mocks[0].id;
-                updateCloudStatusUI('offline', 'Cloud Config Unavailable');
-                renderStudentLobby();
-                return;
+                persistAllMocksToLocal();
             }
 
+            appData.selectedAdminMockId = appData.mocks[0].id;
+
+            // Load saved Google OAuth Client ID
             try {
-                const firebaseApp = initializeApp(firebaseConfig);
-                auth = getAuth(firebaseApp);
-                db = getFirestore(firebaseApp);
-
-                // RULE 3: Authenticate FIRST before attaching any Firestore listeners or queries
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                const savedClientId = localStorage.getItem(LOCAL_GDRIVE_CLIENT_KEY);
+                if (savedClientId) {
+                    gDriveState.clientId = savedClientId;
+                    const inputEl = document.getElementById('gdrive-client-id-input');
+                    if (inputEl) inputEl.value = savedClientId;
                 }
+            } catch (e) {}
 
-                currentUser = auth.currentUser;
-                if (!currentUser) {
-                    throw new Error('Authentication did not return a user.');
-                }
-
-                updateCloudStatusUI('connected', 'Cloud Sync Active');
-                subscribeToCloudMocks();
-            } catch (err) {
-                console.error('Cloud initialization error:', err);
-                updateCloudStatusUI('offline', 'Cloud Connection Failed');
-                showToast('Could not connect to cloud storage: ' + err.message, 'error');
-            }
+            updateStorageStatusUI('Saved in Browser Storage', true);
+            renderStudentLobby();
+            renderAdminWorkspace();
         }
 
-        function getUserMocksCollectionRef() {
-            // RULE 1: Strict private user path /artifacts/{appId}/users/{userId}/cat_mocks
-            return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks');
-        }
-
-        function subscribeToCloudMocks() {
-            if (!currentUser || !db) return;
-            if (unsubscribeMocks) unsubscribeMocks();
-
-            // RULE 2: Simple collection query without orderBy/limit; sort in JS memory
-            const mocksRef = getUserMocksCollectionRef();
-            unsubscribeMocks = onSnapshot(
-                mocksRef,
-                async (snapshot) => {
-                    if (snapshot.empty) {
-                        // Seed initial sample mock into cloud on first visit
-                        const sample = getDefaultSampleData()[0];
-                        await saveMockToCloud(sample, true);
-                        return;
-                    }
-
-                    const loadedMocks = [];
-                    snapshot.forEach((docSnap) => {
-                        const data = docSnap.data();
-                        if (data && data.title) {
-                            loadedMocks.push({
-                                id: docSnap.id,
-                                title: data.title,
-                                createdAt: data.createdAt || new Date().toISOString(),
-                                questions: Array.isArray(data.questions) ? data.questions : []
-                            });
-                        }
-                    });
-
-                    // Sort newest first in JS memory
-                    loadedMocks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    appData.mocks = loadedMocks;
-
-                    if (!appData.selectedAdminMockId || !appData.mocks.some(m => m.id === appData.selectedAdminMockId)) {
-                        appData.selectedAdminMockId = appData.mocks.length > 0 ? appData.mocks[0].id : null;
-                    }
-
-                    updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
-                    renderStudentLobby();
-                    if (!document.getElementById('view-admin').classList.contains('hidden')) {
-                        renderAdminWorkspace();
-                    }
-                },
-                (error) => {
-                    console.error('Firestore onSnapshot error:', error);
-                    updateCloudStatusUI('offline', 'Sync Permission / Network Error');
-                    showToast('Cloud sync error: ' + error.message, 'error');
-                }
-            );
-        }
-
-        async function saveMockToCloud(mockObj, silent = false) {
-            if (!currentUser || !db) {
-                showToast('Not connected to cloud storage yet.', 'error');
-                return false;
-            }
+        function persistAllMocksToLocal() {
             try {
-                updateCloudStatusUI('syncing', 'Saving to Cloud...');
-                // RULE 1: Strict private document path /artifacts/{appId}/users/{userId}/cat_mocks/{mockId}
-                const mockDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks', mockObj.id);
-                await setDoc(mockDocRef, {
-                    id: mockObj.id,
-                    title: mockObj.title,
-                    createdAt: mockObj.createdAt || new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    questions: mockObj.questions || []
-                });
-                updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
-                if (gDriveState.accessToken && !silent) {
-                    setTimeout(() => syncAllToGoogleDrive(true), 400);
-                }
-                return true;
-            } catch (err) {
-                console.error('Error saving mock to cloud:', err);
-                updateCloudStatusUI('offline', 'Save Failed');
-                if (!silent) {
-                    showToast('Cloud save failed (check image sizes < 900KB total per mock): ' + err.message, 'error');
-                }
-                return false;
+                localStorage.setItem(LOCAL_MOCKS_KEY, JSON.stringify(appData.mocks));
+            } catch (e) {
+                showToast('Browser storage quota full! Please connect Google Drive or Export JSON.', 'error');
             }
         }
 
-        async function deleteMockFromCloud(mockId) {
-            if (!currentUser || !db) return;
-            try {
-                updateCloudStatusUI('syncing', 'Deleting from Cloud...');
-                const mockDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'cat_mocks', mockId);
-                await deleteDoc(mockDocRef);
-                updateCloudStatusUI('connected', 'All Changes Saved in Cloud');
-                if (gDriveState.accessToken) {
-                    setTimeout(() => syncAllToGoogleDrive(true), 400);
-                }
-            } catch (err) {
-                console.error('Error deleting mock from cloud:', err);
-                updateCloudStatusUI('offline', 'Delete Failed');
-                showToast('Failed to delete mock from cloud: ' + err.message, 'error');
+        async function saveMockToStore(mockObj, silent = false) {
+            const existingIdx = appData.mocks.findIndex(m => m.id === mockObj.id);
+            const updatedRecord = {
+                ...mockObj,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (existingIdx !== -1) {
+                appData.mocks[existingIdx] = updatedRecord;
+            } else {
+                appData.mocks.unshift(updatedRecord);
+            }
+
+            persistAllMocksToLocal();
+            renderStudentLobby();
+            if (!document.getElementById('view-admin').classList.contains('hidden')) {
+                renderAdminWorkspace();
+            }
+
+            if (gDriveState.accessToken && !silent) {
+                updateStorageStatusUI('Syncing to Google Drive...', false);
+                await syncAllToGoogleDrive(true);
+                updateStorageStatusUI('Saved Locally & in Drive', true);
+            } else {
+                updateStorageStatusUI('Saved in Browser Storage', true);
+            }
+            return true;
+        }
+
+        async function deleteMockFromStore(mockId) {
+            appData.mocks = appData.mocks.filter(m => m.id !== mockId);
+            if (appData.selectedAdminMockId === mockId) {
+                appData.selectedAdminMockId = appData.mocks.length > 0 ? appData.mocks[0].id : null;
+            }
+            persistAllMocksToLocal();
+            renderStudentLobby();
+            renderAdminWorkspace();
+
+            if (gDriveState.accessToken) {
+                await syncAllToGoogleDrive(true);
             }
         }
 
@@ -1181,8 +1039,7 @@
         };
 
         function toggleGDriveHelp() {
-            const box = document.getElementById('gdrive-help-box');
-            box.classList.toggle('hidden');
+            document.getElementById('gdrive-help-box').classList.toggle('hidden');
         }
 
         function updateGDriveUI() {
@@ -1190,7 +1047,6 @@
             const discPanel = document.getElementById('gdrive-disconnected-panel');
             const connPanel = document.getElementById('gdrive-connected-panel');
             const emailEl = document.getElementById('gdrive-user-email');
-
             if (!badge || !discPanel || !connPanel) return;
 
             if (gDriveState.accessToken) {
@@ -1210,20 +1066,20 @@
         function connectGoogleDrive() {
             const inputEl = document.getElementById('gdrive-client-id-input');
             const clientId = (inputEl ? inputEl.value.trim() : '') || gDriveState.clientId;
-
             if (!clientId) {
                 showToast('Please paste your Google OAuth Client ID first (click "How to get free ID?").', 'error');
                 document.getElementById('gdrive-help-box').classList.remove('hidden');
                 return;
             }
-
             if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
                 showToast('Google Sign-In library is still loading. Please try again in 2 seconds.', 'error');
                 return;
             }
 
             gDriveState.clientId = clientId;
-            saveGDriveSettingsToCloud(clientId);
+            try {
+                localStorage.setItem(LOCAL_GDRIVE_CLIENT_KEY, clientId);
+            } catch (e) {}
 
             try {
                 gDriveState.tokenClient = google.accounts.oauth2.initTokenClient({
@@ -1241,7 +1097,6 @@
                         await checkOrSyncInitialDriveFile();
                     }
                 });
-
                 gDriveState.tokenClient.requestAccessToken({ prompt: 'consent' });
             } catch (err) {
                 console.error('OAuth init error:', err);
@@ -1257,37 +1112,8 @@
             gDriveState.userEmail = '';
             gDriveState.driveFileId = null;
             updateGDriveUI();
+            updateStorageStatusUI('Saved in Browser Storage', true);
             showToast('Disconnected from Google Drive.', 'info');
-        }
-
-        async function saveGDriveSettingsToCloud(clientId) {
-            if (!currentUser || !db) return;
-            try {
-                const settingsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'gdrive');
-                await setDoc(settingsRef, { clientId }, { merge: true });
-            } catch (e) {
-                console.warn('Could not save clientId setting:', e);
-            }
-        }
-
-        async function loadGDriveSettingsFromCloud() {
-            if (!currentUser || !db) return;
-            try {
-                const settingsCol = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'settings');
-                onSnapshot(settingsCol, (snap) => {
-                    snap.forEach((docSnap) => {
-                        if (docSnap.id === 'gdrive' && docSnap.data()?.clientId) {
-                            gDriveState.clientId = docSnap.data().clientId;
-                            const inputEl = document.getElementById('gdrive-client-id-input');
-                            if (inputEl && !inputEl.value) {
-                                inputEl.value = gDriveState.clientId;
-                            }
-                        }
-                    });
-                }, () => {});
-            } catch (e) {
-                console.warn('Settings listener skipped:', e);
-            }
         }
 
         async function fetchGoogleUserEmail() {
@@ -1311,7 +1137,7 @@
             const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)`, {
                 headers: { Authorization: `Bearer ${gDriveState.accessToken}` }
             });
-            if (!res.ok) throw new Error('Failed to search Google Drive files.');
+            if (!res.ok) throw new Error('Failed to search Google Drive files (' + res.status + ').');
             const data = await res.json();
             if (data.files && data.files.length > 0) {
                 gDriveState.driveFileId = data.files[0].id;
@@ -1339,7 +1165,6 @@
                 if (!silent) showToast('Please connect your Google Drive first.', 'error');
                 return;
             }
-
             const lastSyncEl = document.getElementById('gdrive-last-sync');
             if (lastSyncEl) lastSyncEl.textContent = 'Uploading to Google Drive...';
 
@@ -1375,7 +1200,6 @@
                 const url = gDriveState.driveFileId
                     ? `https://www.googleapis.com/upload/drive/v3/files/${gDriveState.driveFileId}?uploadType=multipart`
                     : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-
                 const method = gDriveState.driveFileId ? 'PATCH' : 'POST';
 
                 const res = await fetch(url, {
@@ -1403,6 +1227,7 @@
 
                 const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (lastSyncEl) lastSyncEl.textContent = `Saved to Drive at ${timeStr}`;
+                updateStorageStatusUI('Saved Locally & in Drive', true);
                 if (!silent) showToast('All mocks & charts saved directly to your Google Drive!');
             } catch (err) {
                 console.error('Google Drive upload error:', err);
@@ -1416,7 +1241,6 @@
                 showToast('Please connect your Google Drive first.', 'error');
                 return;
             }
-
             try {
                 const fileMeta = await findDriveBackupFile();
                 if (!fileMeta) {
@@ -1427,25 +1251,26 @@
                 const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileMeta.id}?alt=media`, {
                     headers: { Authorization: `Bearer ${gDriveState.accessToken}` }
                 });
-
                 if (!res.ok) throw new Error('Could not download backup from Google Drive.');
+
                 const parsed = await res.json();
                 const importedMocks = Array.isArray(parsed) ? parsed : parsed.mocks;
-
                 if (!Array.isArray(importedMocks) || importedMocks.length === 0) {
                     showToast('Your Google Drive backup file has 0 mocks.', 'info');
                     return;
                 }
 
-                for (const m of importedMocks) {
-                    if (m && m.title && Array.isArray(m.questions)) {
-                        await saveMockToCloud(m, true);
-                    }
+                appData.mocks = importedMocks.filter(m => m && m.title && Array.isArray(m.questions));
+                if (appData.mocks.length > 0) {
+                    appData.selectedAdminMockId = appData.mocks[0].id;
                 }
+                persistAllMocksToLocal();
+                renderStudentLobby();
+                renderAdminWorkspace();
 
                 const lastSyncEl = document.getElementById('gdrive-last-sync');
-                if (lastSyncEl) lastSyncEl.textContent = `Loaded ${importedMocks.length} mock(s) from Drive`;
-                showToast(`Restored ${importedMocks.length} mock(s) from your Google Drive!`);
+                if (lastSyncEl) lastSyncEl.textContent = `Loaded ${appData.mocks.length} mock(s) from Drive`;
+                showToast(`Restored ${appData.mocks.length} mock(s) from your Google Drive!`);
             } catch (err) {
                 console.error('Google Drive download error:', err);
                 showToast('Failed to load from Google Drive: ' + err.message, 'error');
@@ -1453,7 +1278,7 @@
         }
 
         // -------------------------------------------------------------------
-        // 2. UI HELPERS (Toasts, Confirm Dialogs, View Routing)
+        // 2. UI HELPERS
         // -------------------------------------------------------------------
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -1463,7 +1288,6 @@
                 : type === 'info'
                 ? 'bg-slate-800 text-white'
                 : 'bg-emerald-600 text-white';
-
             toast.className = `${colors} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-semibold flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-0`;
             toast.innerHTML = `<span>${type === 'error' ? '⚠️' : type === 'info' ? 'ℹ️' : '✅'}</span><span>${escapeHTML(message)}</span>`;
             container.appendChild(toast);
@@ -1509,7 +1333,6 @@
         }
 
         function switchAppMode(mode) {
-            // Stop any running exam timer if leaving exam
             if (examState.timerInterval) {
                 clearInterval(examState.timerInterval);
                 examState.timerInterval = null;
@@ -1575,7 +1398,7 @@
                                 <span class="text-xs text-gray-400 font-medium">${totalQ} Qs • ${maxMarks} Marks</span>
                             </div>
                             <h4 class="font-bold text-gray-900 text-lg mb-3 line-clamp-2">${escapeHTML(mock.title)}</h4>
-                            
+
                             <div class="grid grid-cols-3 gap-2 mb-5 text-center">
                                 <div class="bg-slate-50 rounded-xl p-2 border border-slate-100">
                                     <div class="text-[11px] font-semibold text-gray-500">VARC</div>
@@ -1643,11 +1466,8 @@
             appData.selectedAdminMockId = newMock.id;
             closeNewMockInput();
             resetQuestionForm();
-
-            const saved = await saveMockToCloud(newMock);
-            if (saved) {
-                showToast(`Created & saved "${title}" to cloud!`);
-            }
+            await saveMockToStore(newMock);
+            showToast(`Created "${title}"!`);
         }
 
         function selectAdminMock(mockId) {
@@ -1661,14 +1481,10 @@
             if (!mock) return;
             customConfirm(
                 'Delete Mock Test?',
-                `Are you sure you want to delete "${mock.title}" and all ${mock.questions.length} of its questions from the cloud?`,
+                `Are you sure you want to delete "${mock.title}" and all ${mock.questions.length} of its questions?`,
                 async () => {
-                    if (appData.selectedAdminMockId === mock.id) {
-                        const remaining = appData.mocks.filter(m => m.id !== mock.id);
-                        appData.selectedAdminMockId = remaining.length > 0 ? remaining[0].id : null;
-                    }
-                    await deleteMockFromCloud(mock.id);
-                    showToast('Mock deleted from cloud.', 'info');
+                    await deleteMockFromStore(mock.id);
+                    showToast('Mock deleted.', 'info');
                 }
             );
         }
@@ -1702,7 +1518,6 @@
                 const v = selectedMock.questions.filter(q => q.section === 'VARC').length;
                 const d = selectedMock.questions.filter(q => q.section === 'DILR').length;
                 const q = selectedMock.questions.filter(q => q.section === 'QA').length;
-
                 document.getElementById('admin-selected-mock-title').textContent = selectedMock.title;
                 document.getElementById('admin-selected-mock-stats').textContent = `Total: ${selectedMock.questions.length} Qs  •  VARC: ${v}  |  DILR: ${d}  |  QA: ${q}`;
                 renderAdminQuestionsList(selectedMock);
@@ -1713,7 +1528,6 @@
             const type = document.getElementById('q-type').value;
             const mcqBox = document.getElementById('mcq-fields-container');
             const titaBox = document.getElementById('tita-fields-container');
-
             if (type === 'MCQ') {
                 mcqBox.classList.remove('hidden');
                 titaBox.classList.add('hidden');
@@ -1936,7 +1750,6 @@
             }
 
             const updatedQuestions = [...mock.questions];
-
             if (editId) {
                 const idx = updatedQuestions.findIndex(q => q.id === editId);
                 if (idx !== -1) {
@@ -1969,11 +1782,9 @@
             }
 
             const updatedMock = { ...mock, questions: updatedQuestions };
-            const saved = await saveMockToCloud(updatedMock);
-            if (saved) {
-                showToast(editId ? 'Question updated in cloud!' : `Question added to ${section} & synced to cloud!`);
-                resetQuestionForm();
-            }
+            await saveMockToStore(updatedMock);
+            showToast(editId ? 'Question updated!' : `Question added to ${section}!`);
+            resetQuestionForm();
         }
 
         function resetQuestionForm() {
@@ -2026,20 +1837,18 @@
             document.getElementById('builder-form-heading').textContent = 'Edit Question';
             document.getElementById('save-question-submit-btn').textContent = 'Save Changes';
             document.getElementById('cancel-edit-q-btn').classList.remove('hidden');
-
             document.getElementById('question-builder-form').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function deleteAdminQuestion(qId) {
+        async function deleteAdminQuestion(qId) {
             const mock = getSelectedAdminMock();
             if (!mock) return;
             const updatedMock = {
                 ...mock,
                 questions: mock.questions.filter(q => q.id !== qId)
             };
-            saveMockToCloud(updatedMock).then((saved) => {
-                if (saved) showToast('Question removed & synced to cloud.', 'info');
-            });
+            await saveMockToStore(updatedMock);
+            showToast('Question removed.', 'info');
         }
 
         function filterAdminQuestions(sec) {
@@ -2128,7 +1937,8 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const imported = JSON.parse(e.target.result);
+                    const parsed = JSON.parse(e.target.result);
+                    const imported = Array.isArray(parsed) ? parsed : parsed.mocks;
                     if (!Array.isArray(imported)) throw new Error('Invalid JSON format');
                     const validMocks = imported.filter(m => m && m.title && Array.isArray(m.questions));
                     if (validMocks.length === 0) throw new Error('No valid mocks found in file');
@@ -2139,9 +1949,12 @@
                             id: m.id || ('mock_' + Date.now() + '_' + Math.floor(Math.random() * 1000)),
                             createdAt: m.createdAt || new Date().toISOString()
                         };
-                        await saveMockToCloud(mockToSave);
+                        await saveMockToStore(mockToSave, true);
                     }
-                    showToast(`Imported & synced ${validMocks.length} mock(s) to cloud!`);
+                    if (gDriveState.accessToken) {
+                        await syncAllToGoogleDrive(true);
+                    }
+                    showToast(`Imported ${validMocks.length} mock(s)!`);
                 } catch (err) {
                     showToast('Failed to import JSON: ' + err.message, 'error');
                 }
@@ -2151,12 +1964,12 @@
         }
 
         function resetSampleData() {
-            customConfirm('Restore Sample Mock?', 'This will add the default CAT Sample Diagnostic Mock to your cloud workspace.', async () => {
+            customConfirm('Restore Sample Mock?', 'This will add the default CAT Sample Diagnostic Mock to your workspace.', async () => {
                 const sample = getDefaultSampleData()[0];
                 sample.id = 'mock_sample_' + Date.now();
                 appData.selectedAdminMockId = sample.id;
-                const saved = await saveMockToCloud(sample);
-                if (saved) showToast('Sample mock restored to cloud!');
+                await saveMockToStore(sample);
+                showToast('Sample mock restored!');
             });
         }
 
@@ -2166,7 +1979,6 @@
         function startMockExam(mockId) {
             const mock = appData.mocks.find(m => m.id === mockId);
             if (!mock) return;
-
             if (mock.questions.length === 0) {
                 showToast('This mock has 0 questions! Add at least 1 question in Mock Creator first.', 'error');
                 return;
@@ -2179,7 +1991,6 @@
             };
 
             const firstActiveSection = SECTIONS.find(s => grouped[s].length > 0) || 'VARC';
-
             const responses = {};
             mock.questions.forEach(q => {
                 responses[q.id] = {
@@ -2218,7 +2029,6 @@
         function startExamTimer() {
             if (examState.timerInterval) clearInterval(examState.timerInterval);
             updateTimerDisplay();
-
             examState.timerInterval = setInterval(() => {
                 const sec = examState.currentSection;
                 if (examState.sectionTimers[sec] > 0) {
@@ -2238,7 +2048,6 @@
             const display = `${String(mins).padStart(2, '0')}:${String(remSecs).padStart(2, '0')}`;
             const el = document.getElementById('exam-timer-display');
             el.textContent = display;
-
             if (secs <= 300) {
                 el.classList.remove('text-amber-400');
                 el.classList.add('text-red-400', 'animate-pulse');
@@ -2262,7 +2071,6 @@
                 resp.status = 'not-answered';
             }
 
-            // Update Section Tabs UI
             SECTIONS.forEach(sec => {
                 const tab = document.getElementById(`sec-tab-${sec}`);
                 const badge = document.getElementById(`sec-badge-${sec}`);
@@ -2283,7 +2091,6 @@
             document.getElementById('exam-q-type-label').textContent = q.type === 'MCQ' ? 'Multiple Choice (MCQ)' : 'Type In The Answer (TITA)';
             document.getElementById('exam-marking-badge').textContent = q.type === 'MCQ' ? '+3 / -1' : '+3 / 0 (No Negative)';
 
-            // Split-Screen Passage & Chart Image Handling
             const passagePane = document.getElementById('exam-passage-pane');
             const passageContent = document.getElementById('exam-passage-content');
             const passageImgContainer = document.getElementById('exam-passage-img-container');
@@ -2313,7 +2120,6 @@
                 passageZoomHint.classList.add('hidden');
             }
 
-            // Question Text & Optional Quant/Question Diagram Image
             document.getElementById('exam-question-text').textContent = q.text;
             const qImgContainer = document.getElementById('exam-question-img-container');
             const qImg = document.getElementById('exam-question-img');
@@ -2325,14 +2131,12 @@
                 qImgContainer.classList.add('hidden');
             }
 
-            // Render MCQ vs TITA Input
             const mcqBox = document.getElementById('exam-mcq-options');
             const titaBox = document.getElementById('exam-tita-box');
 
             if (q.type === 'MCQ') {
                 mcqBox.classList.remove('hidden');
                 titaBox.classList.add('hidden');
-
                 const letters = ['A', 'B', 'C', 'D'];
                 mcqBox.innerHTML = q.options.map((opt, idx) => {
                     const isChecked = resp.answer === idx;
@@ -2350,7 +2154,6 @@
                 document.getElementById('exam-tita-input').value = resp.answer !== null ? String(resp.answer) : '';
             }
 
-            // Update Next Section button visibility
             const nextSec = getNextNonEmptySection();
             const nextSecBtn = document.getElementById('next-section-btn');
             if (nextSec) {
@@ -2363,7 +2166,6 @@
             renderExamPalette();
         }
 
-        // MCQ Selection
         function selectMcqOption(optionIndex) {
             const q = getCurrentQuestion();
             if (!q) return;
@@ -2371,7 +2173,6 @@
             loadCurrentExamQuestion();
         }
 
-        // TITA Keypad Actions
         function titaPress(char) {
             const q = getCurrentQuestion();
             if (!q || q.type !== 'TITA') return;
@@ -2380,7 +2181,6 @@
             if (char === '-' && current.length > 0) return;
             if (char === '.' && current.includes('.')) return;
             if (current.length >= 12) return;
-
             current += char;
             input.value = current;
             examState.responses[q.id].answer = current;
@@ -2402,7 +2202,6 @@
             examState.responses[q.id].answer = null;
         }
 
-        // Bottom Action Buttons
         function hasValidResponse(q) {
             const ans = examState.responses[q.id].answer;
             if (q.type === 'MCQ') return ans !== null && ans !== undefined;
@@ -2449,7 +2248,6 @@
         function renderExamPalette() {
             const secList = examState.questionsBySection[examState.currentSection];
             const grid = document.getElementById('exam-palette-grid');
-
             let counts = {
                 'answered': 0,
                 'not-answered': 0,
@@ -2461,7 +2259,6 @@
             grid.innerHTML = secList.map((q, idx) => {
                 const status = examState.responses[q.id].status;
                 if (counts[status] !== undefined) counts[status]++;
-
                 const activeClass = idx === examState.currentIndex ? 'palette-active' : '';
                 return `
                     <button onclick="jumpToPaletteQuestion(${idx})" class="palette-btn status-${status} ${activeClass}">
@@ -2529,12 +2326,10 @@
             }
         }
 
-        // Modals inside Exam Mode
         function openQuestionPaperModal() {
             const modal = document.getElementById('exam-info-modal');
             document.getElementById('exam-info-title').textContent = `Full Question Paper — ${examState.currentSection}`;
             const secQuestions = examState.questionsBySection[examState.currentSection];
-
             document.getElementById('exam-info-body').innerHTML = secQuestions.map((q, i) => `
                 <div class="p-4 rounded-xl border border-gray-200 bg-gray-50">
                     <div class="font-bold text-blue-800 mb-1">Q${i + 1}. (${q.type})</div>
@@ -2544,7 +2339,6 @@
                     ${q.questionImage ? `<img src="${q.questionImage}" alt="Question Figure" class="max-h-48 rounded border bg-white p-1 mt-2">` : ''}
                 </div>
             `).join('');
-
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -2619,7 +2413,6 @@
                 if (isAttempted) {
                     totalAttempted++;
                     sectionStats[sec].attempted++;
-
                     let isCorrect = false;
                     if (q.type === 'MCQ') {
                         isCorrect = Number(resp.answer) === Number(q.correctAnswer);
@@ -2830,68 +2623,12 @@
             }
         }
 
-        // Expose functions to global window scope for inline HTML event handlers
-        Object.assign(window, {
-            switchAppMode,
-            openMockInAdmin,
-            openNewMockInput,
-            closeNewMockInput,
-            createNewMock,
-            selectAdminMock,
-            deleteSelectedMock,
-            toggleGDriveHelp,
-            connectGoogleDrive,
-            disconnectGoogleDrive,
-            syncAllToGoogleDrive,
-            loadFromGoogleDrive,
-            toggleQuestionTypeFields,
-            reusePreviousPassage,
-            handleImageFileSelect,
-            handleDragOver,
-            handleDragLeave,
-            handleImageDrop,
-            handleImagePaste,
-            toggleUrlInput,
-            applyImageUrl,
-            removeImage,
-            openImageZoomModal,
-            closeImageZoomModal,
-            saveQuestionFromForm,
-            resetQuestionForm,
-            editAdminQuestion,
-            deleteAdminQuestion,
-            filterAdminQuestions,
-            launchSelectedMockFromAdmin,
-            exportMocksJSON,
-            importMocksJSON,
-            resetSampleData,
-            startMockExam,
-            attemptSectionSwitch,
-            selectMcqOption,
-            titaPress,
-            titaBackspace,
-            titaClear,
-            handleSaveAndNext,
-            handleMarkForReviewAndNext,
-            handleClearResponse,
-            jumpToPaletteQuestion,
-            handleNextSectionManual,
-            openQuestionPaperModal,
-            openInstructionsModal,
-            closeExamInfoModal,
-            confirmSubmitExam,
-            renderReviewList,
-            retakeCurrentMock
-        });
-
         // -------------------------------------------------------------------
         // 7. BOOTSTRAP APPLICATION
         // -------------------------------------------------------------------
         window.addEventListener('DOMContentLoaded', () => {
             switchAppMode('student');
-            initCloudStorage().then(() => {
-                loadGDriveSettingsFromCloud();
-            });
+            initAppStorage();
         });
     </script>
 </body>
